@@ -1,0 +1,14 @@
+{
+  "name": "eduinsight-dashboard",
+  "version": "1.0.0",
+  "description": "Department Analytical Dashboard",
+  "scripts": {
+    "install-all": "npm install && npm install --prefix dashboard-backend && npm install --prefix dashboard-frontend",
+    "dev": "concurrently \"npm run dev --prefix dashboard-backend\" \"npm run dev --prefix dashboard-frontend\"",
+    "backend": "npm run dev --prefix dashboard-backend",
+    "frontend": "npm run dev --prefix dashboard-frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
