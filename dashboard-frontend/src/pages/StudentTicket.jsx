@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import SimplifiedHeader from '../components/SimplifiedHeader'
-import { Send, CheckCircle, AlertCircle, Clock } from 'lucide-react'
+import { Send, CheckCircle, AlertCircle, Clock, Trash2 } from 'lucide-react'
 import { ticketsAPI } from '../services/api'
 
-export default function StudentTicket({ onLogout }) {
+export default function StudentTicket({ onLogout, userRole = 'student' }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState(null)
@@ -103,6 +103,20 @@ export default function StudentTicket({ onLogout }) {
     }
   }
 
+  const handleDeleteTicket = async (ticketId) => {
+    if (window.confirm('Are you sure you want to delete this ticket?')) {
+      try {
+        await ticketsAPI.deleteTicket(ticketId)
+        setTickets(tickets.filter(t => (t._id || t.id) !== ticketId))
+        setSelectedTicket(null)
+        alert('Ticket deleted successfully!')
+      } catch (err) {
+        console.error('Error deleting ticket:', err)
+        alert('Failed to delete ticket')
+      }
+    }
+  }
+
   const handleLogout = () => {
     onLogout()
     navigate('/login')
@@ -150,7 +164,7 @@ export default function StudentTicket({ onLogout }) {
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-900">
-        <Sidebar isOpen={sidebarOpen} userRole="student" />
+        <Sidebar isOpen={sidebarOpen} userRole={userRole} />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-white text-xl">Loading tickets...</p>
         </div>
@@ -260,29 +274,38 @@ export default function StudentTicket({ onLogout }) {
                   ) : (
                     <div className="divide-y divide-gray-700">
                       {tickets.map((ticket) => (
-                        <button
-                          key={ticket._id || ticket.id}
-                          onClick={() => handleSelectTicket(ticket)}
-                          className={`w-full text-left p-4 transition ${
-                            selectedTicket?._id === ticket._id || selectedTicket?.id === ticket.id
-                              ? 'bg-purple-900 bg-opacity-50 border-l-4 border-purple-400'
-                              : 'hover:bg-gray-700 bg-opacity-50'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <h3 className="font-semibold text-white text-sm">{ticket.title}</h3>
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${getPriorityColor(ticket.priority)}`}>
-                              {ticket.priority?.toUpperCase() || 'MEDIUM'}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 ${getStatusColor(ticket.status)}`}>
-                              {getStatusIcon(ticket.status)}
-                              {ticket.status || 'Pending'}
-                            </span>
-                            <span className="text-xs text-gray-400">{ticket.createdDate ? new Date(ticket.createdDate).toLocaleDateString() : 'N/A'}</span>
-                          </div>
-                        </button>
+                        <div key={ticket._id || ticket.id} className="flex items-start justify-between p-4 hover:bg-gray-700 bg-opacity-50 transition group">
+                          <button
+                            onClick={() => handleSelectTicket(ticket)}
+                            className={`flex-1 text-left transition ${
+                              selectedTicket?._id === ticket._id || selectedTicket?.id === ticket.id
+                                ? 'bg-purple-900 bg-opacity-50 border-l-4 border-purple-400'
+                                : ''
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="font-semibold text-white text-sm">{ticket.title}</h3>
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${getPriorityColor(ticket.priority)}`}>
+                                {ticket.priority?.toUpperCase() || 'MEDIUM'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-400 mb-2">Ticket ID: {ticket._id ? ticket._id.slice(-8) : ticket.id}</p>
+                            <div className="flex items-center justify-between">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 ${getStatusColor(ticket.status)}`}>
+                                {getStatusIcon(ticket.status)}
+                                {ticket.status || 'Pending'}
+                              </span>
+                              <span className="text-xs text-gray-400">{ticket.createdDate ? new Date(ticket.createdDate).toLocaleDateString() : 'N/A'}</span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTicket(ticket._id || ticket.id)}
+                            className="p-2 hover:bg-red-900 rounded-lg transition text-red-400 hover:text-red-300 ml-2 opacity-0 group-hover:opacity-100"
+                            title="Delete ticket"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}

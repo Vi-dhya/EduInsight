@@ -8,6 +8,7 @@ import examRoutes from './routes/exam.js'
 import filesRoutes from './routes/files.js'
 import noticeRoutes from './routes/notice.js'
 import ticketRoutes from './routes/tickets.js'
+import notificationRoutes from './routes/notifications.js'
 import connectDB from './config/database.js'
 
 dotenv.config()
@@ -47,7 +48,7 @@ app.get('/test-students', async (req, res) => {
   }
 })
 
-const PORT = process.env.PORT || 5003
+const PORT = process.env.PORT || 5007
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)

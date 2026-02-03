@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import SimplifiedHeader from '../components/SimplifiedHeader'
-import { Calendar, AlertCircle } from 'lucide-react'
+import { Calendar, AlertCircle, Trash2 } from 'lucide-react'
 import { noticesAPI } from '../services/api'
 
-export default function StudentNoticeBoard({ onLogout }) {
+export default function StudentNoticeBoard({ onLogout, userRole = 'student' }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [notices, setNotices] = useState([])
   const [loading, setLoading] = useState(true)
@@ -19,12 +19,26 @@ export default function StudentNoticeBoard({ onLogout }) {
     try {
       setLoading(true)
       const data = await noticesAPI.getNotices('general', 'AI&DS')
-      setNotices(Array.isArray(data) ? data : [])
+      console.log('Fetched notices:', data)
+      setNotices(Array.isArray(data) ? data : (data.notices ? data.notices : []))
     } catch (err) {
       console.error('Error fetching notices:', err)
       setNotices([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteNotice = async (id) => {
+    if (window.confirm('Are you sure you want to delete this notice?')) {
+      try {
+        await noticesAPI.deleteNotice(id)
+        setNotices(notices.filter(n => n._id !== id))
+        alert('Notice deleted successfully!')
+      } catch (err) {
+        console.error('Error deleting notice:', err)
+        alert('Failed to delete notice')
+      }
     }
   }
 
@@ -49,7 +63,7 @@ export default function StudentNoticeBoard({ onLogout }) {
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-900">
-        <Sidebar isOpen={sidebarOpen} userRole="student" />
+        <Sidebar isOpen={sidebarOpen} userRole={userRole} />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-white text-xl">Loading notices...</p>
         </div>
@@ -59,7 +73,7 @@ export default function StudentNoticeBoard({ onLogout }) {
 
   return (
     <div className="flex h-screen bg-gray-900">
-      <Sidebar isOpen={sidebarOpen} userRole="student" />
+      <Sidebar isOpen={sidebarOpen} userRole={userRole} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <SimplifiedHeader 
@@ -78,32 +92,41 @@ export default function StudentNoticeBoard({ onLogout }) {
               {notices.length > 0 ? (
                 <div className="space-y-4">
                   {notices.map((notice) => (
-                    <div key={notice._id || notice.id} className="glass-effect rounded-xl p-6 card-shadow hover:scale-102 transition">
+                    <div key={notice._id} className="glass-effect rounded-xl p-6 card-shadow hover:scale-102 transition">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-xl font-bold text-white">{notice.title}</h3>
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(notice.priority)}`}>
-                              {notice.priority?.toUpperCase() || 'MEDIUM'}
+                              {notice.priority.toUpperCase()}
                             </span>
                           </div>
-                          <p className="text-gray-300 mb-3">{notice.content || notice.description}</p>
+                          <p className="text-gray-300 mb-4">{notice.content}</p>
                           <div className="flex items-center gap-4 text-sm text-gray-400">
                             <div className="flex items-center gap-2">
                               <Calendar size={14} />
-                              {notice.createdAt ? new Date(notice.createdAt).toLocaleDateString() : 'N/A'}
+                              {new Date(notice.createdAt).toLocaleDateString()}
                             </div>
-                            <div>From: <span className="text-purple-400 font-semibold">{notice.author || 'Faculty'}</span></div>
+                            <div>From: <span className="text-purple-400 font-semibold">{notice.author}</span></div>
                           </div>
                         </div>
+                        <button
+                          onClick={() => handleDeleteNotice(notice._id)}
+                          className="p-2 hover:bg-red-900 rounded-lg transition text-red-400 hover:text-red-300 ml-4"
+                          title="Delete notice"
+                        >
+                          <Trash2 size={20} />
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="glass-effect rounded-xl p-12 card-shadow text-center">
-                  <AlertCircle size={48} className="mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-300 text-lg">No notices available</p>
+                <div className="glass-effect rounded-xl p-6 card-shadow text-center">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <AlertCircle size={48} className="text-gray-400" />
+                    <p className="text-gray-300 text-lg">No notice available yet</p>
+                  </div>
                 </div>
               )}
             </div>

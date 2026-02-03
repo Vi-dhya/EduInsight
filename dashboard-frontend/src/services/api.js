@@ -1,5 +1,5 @@
-const API_BASE_URL = 'http://localhost:5005/api'
-const AUTH_BASE_URL = 'http://localhost:5005/auth'
+const API_BASE_URL = 'http://localhost:5007/api'
+const AUTH_BASE_URL = 'http://localhost:5007/auth'
 
 // Get token from localStorage
 const getToken = () => localStorage.getItem('token')
@@ -104,9 +104,10 @@ export const departmentAPI = {
   },
 
   // Certifications
-  getCertifications: async (year) => {
+  getCertifications: async (year, department) => {
     const params = new URLSearchParams()
     if (year) params.append('year', year)
+    if (department) params.append('department', department)
     
     const response = await fetch(`${API_BASE_URL}/department/certifications?${params}`, {
       headers: getHeaders()
@@ -143,9 +144,10 @@ export const departmentAPI = {
   },
 
   // Internships
-  getInternships: async (year) => {
+  getInternships: async (year, department) => {
     const params = new URLSearchParams()
     if (year) params.append('year', year)
+    if (department) params.append('department', department)
     
     const response = await fetch(`${API_BASE_URL}/department/internships?${params}`, {
       headers: getHeaders()
@@ -454,6 +456,14 @@ export const ticketsAPI = {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify({ status })
+    })
+    return response.json()
+  },
+
+  deleteTicket: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/tickets/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
     })
     return response.json()
   }

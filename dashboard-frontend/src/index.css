@@ -14,23 +14,89 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #1e3a8a 0%, #1f2937 50%, #7c3aed 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e3a8a 100%);
   min-height: 100vh;
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #7c3aed 0%, #1e3a8a 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .glass-effect {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.7);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .card-shadow {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Professional Button Styles */
+.btn-primary {
+  @apply px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition duration-200 shadow-lg hover:shadow-xl;
+}
+
+.btn-secondary {
+  @apply px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition duration-200 shadow-md hover:shadow-lg;
+}
+
+.btn-success {
+  @apply px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-lg font-semibold transition duration-200 shadow-lg hover:shadow-xl;
+}
+
+.btn-danger {
+  @apply px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg font-semibold transition duration-200 shadow-lg hover:shadow-xl;
+}
+
+.btn-small {
+  @apply px-3 py-1 text-sm font-semibold rounded transition duration-200;
+}
+
+/* Professional Card Styles */
+.card-professional {
+  @apply glass-effect rounded-xl p-6 card-shadow border border-blue-500/20 hover:border-blue-500/40 transition duration-300;
+}
+
+.card-header {
+  @apply bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-xl font-semibold;
+}
+
+/* Table Enhancements */
+.table-header {
+  @apply bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold;
+}
+
+.table-row-hover {
+  @apply border-t border-slate-700 bg-slate-800/50 hover:bg-slate-700/70 transition duration-200;
+}
+
+/* Tab Styles */
+.tab-active {
+  @apply text-blue-400 border-b-2 border-blue-400;
+}
+
+.tab-inactive {
+  @apply text-slate-400 hover:text-slate-300 transition duration-200;
+}
+
+/* Input Styles */
+.input-professional {
+  @apply w-full px-4 py-2 bg-slate-800 border border-blue-500/30 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-200;
+}
+
+/* Badge Styles */
+.badge-pass {
+  @apply px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/30 text-emerald-300 border border-emerald-500/30;
+}
+
+.badge-fail {
+  @apply px-3 py-1 rounded-full text-xs font-semibold bg-red-900/30 text-red-300 border border-red-500/30;
+}
+
+.badge-pending {
+  @apply px-3 py-1 rounded-full text-xs font-semibold bg-yellow-900/30 text-yellow-300 border border-yellow-500/30;
 }

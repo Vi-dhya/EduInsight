@@ -6,13 +6,7 @@ export const validatePassword = (password) => {
     }
   }
 
-  if (password.length < 8) {
-    return {
-      isValid: false,
-      errors: ['Password must be at least 8 characters']
-    }
-  }
-
+  // Accept any password (minimum 1 character)
   return {
     isValid: true,
     errors: []

@@ -1,30 +1,6 @@
 import mongoose from 'mongoose'
 
 const examScheduleSchema = new mongoose.Schema({
-  date: {
-    type: Date,
-    required: true
-  },
-  day: {
-    type: String,
-    required: true
-  },
-  courseName: {
-    type: String,
-    required: true
-  },
-  timing: {
-    type: String,
-    required: true
-  },
-  duration: {
-    type: String,
-    required: true
-  },
-  semester: {
-    type: String,
-    required: true
-  },
   year: {
     type: String,
     required: true,
@@ -33,6 +9,24 @@ const examScheduleSchema = new mongoose.Schema({
   department: {
     type: String,
     default: 'AI&DS'
+  },
+  scheduleFile: {
+    type: String // File path for uploaded schedule PDF
+  },
+  exams: [{
+    course: String,
+    date: String,
+    day: String,
+    time: String,
+    duration: String
+  }],
+  totalExams: {
+    type: Number,
+    default: 0
+  },
+  ocrProcessed: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true

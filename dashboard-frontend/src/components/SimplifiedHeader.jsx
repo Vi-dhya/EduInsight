@@ -72,9 +72,9 @@ export default function SimplifiedHeader({ sidebarOpen, setSidebarOpen, onLogout
           </button>
 
           {showProfileDropdown && (
-            <div className="absolute top-full right-0 mt-2 bg-gray-700 rounded-lg shadow-lg z-50 w-48">
+            <div className="absolute top-full right-0 mt-2 bg-gray-700 rounded-lg shadow-lg z-50 w-56">
               <div className="px-4 py-3 border-b border-gray-600">
-                <p className="text-white font-semibold text-sm">{userEmail}</p>
+                <p className="text-white font-semibold text-sm break-words truncate">{userEmail}</p>
               </div>
               <button
                 onClick={handleProfile}

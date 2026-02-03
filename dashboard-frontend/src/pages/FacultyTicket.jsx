@@ -1,111 +1,122 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import SimplifiedHeader from '../components/SimplifiedHeader'
-import { Send, Reply, CheckCircle, Clock, AlertCircle } from 'lucide-react'
+import { Send, Reply, CheckCircle, Clock, AlertCircle, Trash2 } from 'lucide-react'
+import { ticketsAPI } from '../services/api'
 
-export default function FacultyTicket({ onLogout }) {
+export default function FacultyTicket({ onLogout, userRole = 'faculty' }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [replyText, setReplyText] = useState('')
+  const [showRaiseTicket, setShowRaiseTicket] = useState(false)
+  const [tickets, setTickets] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [ticketForm, setTicketForm] = useState({
+    studentRoll: '',
+    studentName: '',
+    title: '',
+    description: '',
+    priority: 'medium'
+  })
   const navigate = useNavigate()
 
-  const [tickets, setTickets] = useState([
-    {
-      id: 1,
-      studentName: 'Raj Kumar',
-      studentRoll: '23102060',
-      title: 'Exam Schedule Clarification',
-      description: 'Need clarification on the exam schedule for semester 2',
-      priority: 'high',
-      status: 'Replied',
-      createdDate: '2024-01-28',
-      messages: [
-        { sender: 'student', name: 'Raj Kumar', text: 'Need clarification on the exam schedule for semester 2', date: '2024-01-28 10:30 AM' },
-        { sender: 'faculty', name: 'Dr. Smith', text: 'The exam schedule has been updated. Please check the notice board for details.', date: '2024-01-29 2:15 PM' }
-      ]
-    },
-    {
-      id: 2,
-      studentName: 'Priya Singh',
-      studentRoll: '23102061',
-      title: 'Certificate Upload Issue',
-      description: 'Unable to upload certificate file, getting error',
-      priority: 'medium',
-      status: 'Pending',
-      createdDate: '2024-01-30',
-      messages: [
-        { sender: 'student', name: 'Priya Singh', text: 'Unable to upload certificate file, getting error', date: '2024-01-30 11:00 AM' }
-      ]
-    },
-    {
-      id: 3,
-      studentName: 'Amit Patel',
-      studentRoll: '23102062',
-      title: 'Marks Not Updated',
-      description: 'My marks for internal 1 are not showing in the system',
-      priority: 'high',
-      status: 'Resolved',
-      createdDate: '2024-01-25',
-      messages: [
-        { sender: 'student', name: 'Amit Patel', text: 'My marks for internal 1 are not showing in the system', date: '2024-01-25 9:00 AM' },
-        { sender: 'faculty', name: 'Dr. Smith', text: 'I have updated your marks. Please refresh the page to see the changes.', date: '2024-01-27 3:30 PM' }
-      ]
-    },
-    {
-      id: 4,
-      studentName: 'Neha Sharma',
-      studentRoll: '23102063',
-      title: 'Internship Duration Query',
-      description: 'Can I extend my internship duration?',
-      priority: 'low',
-      status: 'Pending',
-      createdDate: '2024-01-31',
-      messages: [
-        { sender: 'student', name: 'Neha Sharma', text: 'Can I extend my internship duration?', date: '2024-01-31 1:45 PM' }
-      ]
+  useEffect(() => {
+    fetchTickets()
+  }, [])
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true)
+      const data = await ticketsAPI.getTickets()
+      setTickets(Array.isArray(data) ? data : (data.tickets ? data.tickets : []))
+    } catch (err) {
+      console.error('Error fetching tickets:', err)
+      setTickets([])
+    } finally {
+      setLoading(false)
     }
-  ])
+  }
 
   const handleSelectTicket = (ticket) => {
     setSelectedTicket(ticket)
     setReplyText('')
   }
 
-  const handleSendReply = () => {
+  const handleSendReply = async () => {
     if (replyText.trim() && selectedTicket) {
-      const updatedTickets = tickets.map(t => {
-        if (t.id === selectedTicket.id) {
-          const newMessage = {
-            sender: 'faculty',
-            name: 'Dr. Smith',
-            text: replyText,
-            date: new Date().toLocaleString()
-          }
-          return {
-            ...t,
-            messages: [...t.messages, newMessage],
-            status: 'Replied'
-          }
+      try {
+        const message = {
+          sender: 'faculty',
+          name: 'Faculty',
+          text: replyText
         }
-        return t
-      })
-      setTickets(updatedTickets)
-      setSelectedTicket(updatedTickets.find(t => t.id === selectedTicket.id))
-      setReplyText('')
+        
+        await ticketsAPI.addMessage(selectedTicket._id || selectedTicket.id, message)
+        fetchTickets()
+        setReplyText('')
+        alert('Message sent successfully!')
+      } catch (err) {
+        console.error('Error sending reply:', err)
+        alert('Failed to send message')
+      }
     }
   }
 
-  const handleResolveTicket = () => {
+  const handleResolveTicket = async () => {
     if (selectedTicket) {
-      const updatedTickets = tickets.map(t => {
-        if (t.id === selectedTicket.id) {
-          return { ...t, status: 'Resolved' }
-        }
-        return t
-      })
-      setTickets(updatedTickets)
-      setSelectedTicket(updatedTickets.find(t => t.id === selectedTicket.id))
+      try {
+        await ticketsAPI.updateTicketStatus(selectedTicket._id || selectedTicket.id, 'Resolved')
+        fetchTickets()
+        alert('Ticket resolved successfully!')
+      } catch (err) {
+        console.error('Error resolving ticket:', err)
+        alert('Failed to resolve ticket')
+      }
+    }
+  }
+
+  const handleDeleteTicket = async (ticketId) => {
+    if (window.confirm('Are you sure you want to delete this ticket?')) {
+      try {
+        await ticketsAPI.deleteTicket(ticketId)
+        setTickets(tickets.filter(t => (t._id || t.id) !== ticketId))
+        setSelectedTicket(null)
+        alert('Ticket deleted successfully!')
+      } catch (err) {
+        console.error('Error deleting ticket:', err)
+        alert('Failed to delete ticket')
+      }
+    }
+  }
+
+  const handleRaiseTicket = async () => {
+    if (ticketForm.studentRoll && ticketForm.studentName && ticketForm.title && ticketForm.description) {
+      try {
+        const newTicket = await ticketsAPI.createTicket({
+          title: ticketForm.title,
+          description: ticketForm.description,
+          priority: ticketForm.priority,
+          rollNo: ticketForm.studentRoll,
+          studentName: ticketForm.studentName,
+          studentEmail: `student${ticketForm.studentRoll}@university.edu`
+        })
+        setTickets([newTicket, ...tickets])
+        setShowRaiseTicket(false)
+        setTicketForm({
+          studentRoll: '',
+          studentName: '',
+          title: '',
+          description: '',
+          priority: 'medium'
+        })
+        alert('Ticket raised successfully!')
+      } catch (err) {
+        console.error('Error raising ticket:', err)
+        alert('Failed to raise ticket')
+      }
+    } else {
+      alert('Please fill in all fields')
     }
   }
 
@@ -155,7 +166,7 @@ export default function FacultyTicket({ onLogout }) {
 
   return (
     <div className="flex h-screen bg-gray-900">
-      <Sidebar isOpen={sidebarOpen} userRole="faculty" />
+      <Sidebar isOpen={sidebarOpen} userRole={userRole} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <SimplifiedHeader 
@@ -166,7 +177,101 @@ export default function FacultyTicket({ onLogout }) {
 
         <main className="flex-1 overflow-auto p-6">
           <div className="max-w-7xl mx-auto">
-            <h1 className="text-4xl font-bold text-white mb-8">Student Tickets</h1>
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-4xl font-bold text-white">Student Tickets</h1>
+              <button
+                onClick={() => setShowRaiseTicket(true)}
+                className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-semibold transition"
+              >
+                Raise Ticket
+              </button>
+            </div>
+
+            {/* Raise Ticket Modal */}
+            {showRaiseTicket && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="glass-effect rounded-xl p-8 card-shadow max-w-md w-full mx-4">
+                  <h2 className="text-2xl font-bold text-white mb-6">Raise Ticket to Student</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-200 mb-2">Student Roll No</label>
+                      <input
+                        type="text"
+                        value={ticketForm.studentRoll}
+                        onChange={(e) => setTicketForm({...ticketForm, studentRoll: e.target.value})}
+                        placeholder="e.g., 23102001"
+                        className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-200 mb-2">Student Name</label>
+                      <input
+                        type="text"
+                        value={ticketForm.studentName}
+                        onChange={(e) => setTicketForm({...ticketForm, studentName: e.target.value})}
+                        placeholder="e.g., Atchaya"
+                        className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-200 mb-2">Ticket Title</label>
+                      <input
+                        type="text"
+                        value={ticketForm.title}
+                        onChange={(e) => setTicketForm({...ticketForm, title: e.target.value})}
+                        placeholder="e.g., Exam Schedule Clarification"
+                        className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-200 mb-2">Description</label>
+                      <textarea
+                        value={ticketForm.description}
+                        onChange={(e) => setTicketForm({...ticketForm, description: e.target.value})}
+                        placeholder="Describe the issue or message..."
+                        rows="3"
+                        className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 transition resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-200 mb-2">Priority</label>
+                      <select
+                        value={ticketForm.priority}
+                        onChange={(e) => setTicketForm({...ticketForm, priority: e.target.value})}
+                        className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-white focus:outline-none focus:border-purple-400 transition"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-4 pt-4">
+                      <button
+                        onClick={handleRaiseTicket}
+                        className="flex-1 px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
+                      >
+                        Raise Ticket
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowRaiseTicket(false)
+                          setTicketForm({
+                            studentRoll: '',
+                            studentName: '',
+                            title: '',
+                            description: '',
+                            priority: 'medium'
+                          })
+                        }}
+                        className="flex-1 px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
               {/* Tickets List */}
@@ -175,7 +280,11 @@ export default function FacultyTicket({ onLogout }) {
                   <h2 className="text-xl font-bold text-white">Tickets ({tickets.length})</h2>
                 </div>
                 <div className="flex-1 overflow-y-auto">
-                  {tickets.length === 0 ? (
+                  {loading ? (
+                    <div className="p-6 text-center text-gray-400">
+                      <p>Loading tickets...</p>
+                    </div>
+                  ) : tickets.length === 0 ? (
                     <div className="p-6 text-center text-gray-400">
                       <AlertCircle size={32} className="mx-auto mb-2 opacity-50" />
                       <p>No tickets yet</p>
@@ -183,30 +292,38 @@ export default function FacultyTicket({ onLogout }) {
                   ) : (
                     <div className="divide-y divide-gray-700">
                       {tickets.map((ticket) => (
-                        <button
-                          key={ticket.id}
-                          onClick={() => handleSelectTicket(ticket)}
-                          className={`w-full text-left p-4 transition ${
-                            selectedTicket?.id === ticket.id
-                              ? 'bg-purple-900 bg-opacity-50 border-l-4 border-purple-400'
-                              : 'hover:bg-gray-700 bg-opacity-50'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <h3 className="font-semibold text-white text-sm">{ticket.title}</h3>
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${getPriorityColor(ticket.priority)}`}>
-                              {ticket.priority.toUpperCase()}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-400 mb-2">{ticket.studentName} ({ticket.studentRoll})</p>
-                          <div className="flex items-center justify-between">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 ${getStatusColor(ticket.status)}`}>
-                              {getStatusIcon(ticket.status)}
-                              {ticket.status}
-                            </span>
-                            <span className="text-xs text-gray-400">{ticket.createdDate}</span>
-                          </div>
-                        </button>
+                        <div key={ticket._id || ticket.id} className="flex items-start justify-between p-4 hover:bg-gray-700 bg-opacity-50 transition group">
+                          <button
+                            onClick={() => handleSelectTicket(ticket)}
+                            className={`flex-1 text-left transition ${
+                              selectedTicket?._id === ticket._id || selectedTicket?.id === ticket.id
+                                ? 'bg-purple-900 bg-opacity-50 border-l-4 border-purple-400'
+                                : ''
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="font-semibold text-white text-sm">{ticket.title}</h3>
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${getPriorityColor(ticket.priority)}`}>
+                                {ticket.priority.toUpperCase()}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-400 mb-2">{ticket.studentName} ({ticket.rollNo})</p>
+                            <div className="flex items-center justify-between">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 ${getStatusColor(ticket.status)}`}>
+                                {getStatusIcon(ticket.status)}
+                                {ticket.status}
+                              </span>
+                              <span className="text-xs text-gray-400">{ticket.createdDate ? new Date(ticket.createdDate).toLocaleDateString() : 'N/A'}</span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTicket(ticket._id || ticket.id)}
+                            className="p-2 hover:bg-red-900 rounded-lg transition text-red-400 hover:text-red-300 ml-2 opacity-0 group-hover:opacity-100"
+                            title="Delete ticket"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -220,7 +337,7 @@ export default function FacultyTicket({ onLogout }) {
                     <div className="flex items-center justify-between">
                       <div>
                         <h2 className="text-xl font-bold text-white">{selectedTicket.title}</h2>
-                        <p className="text-sm text-purple-200 mt-1">{selectedTicket.studentName} ({selectedTicket.studentRoll})</p>
+                        <p className="text-sm text-purple-200 mt-1">{selectedTicket.studentName} ({selectedTicket.rollNo})</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2 ${getStatusColor(selectedTicket.status)}`}>
                         {getStatusIcon(selectedTicket.status)}
@@ -231,19 +348,25 @@ export default function FacultyTicket({ onLogout }) {
 
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                    {selectedTicket.messages.map((msg, idx) => (
-                      <div key={idx} className={`flex ${msg.sender === 'faculty' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-xs px-4 py-3 rounded-lg ${
-                          msg.sender === 'faculty'
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-700 text-gray-100'
-                        }`}>
-                          <p className="text-sm font-semibold mb-1">{msg.name}</p>
-                          <p className="text-sm">{msg.text}</p>
-                          <p className="text-xs opacity-70 mt-2">{msg.date}</p>
+                    {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
+                      selectedTicket.messages.map((msg, idx) => (
+                        <div key={idx} className={`flex ${msg.sender === 'faculty' ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-xs px-4 py-3 rounded-lg ${
+                            msg.sender === 'faculty'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-700 text-gray-100'
+                          }`}>
+                            <p className="text-sm font-semibold mb-1">{msg.name}</p>
+                            <p className="text-sm">{msg.text}</p>
+                            <p className="text-xs opacity-70 mt-2">{msg.date ? new Date(msg.date).toLocaleString() : 'N/A'}</p>
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-gray-400">
+                        <p>No messages yet</p>
                       </div>
-                    ))}
+                    )}
                   </div>
 
                   {/* Reply Section */}

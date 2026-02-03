@@ -16,7 +16,7 @@ router.get('/schedules', verifyToken, async (req, res) => {
     if (department) filter.department = department
     if (semester) filter.semester = semester
 
-    const schedules = await ExamSchedule.find(filter).sort({ date: 1 })
+    const schedules = await ExamSchedule.find(filter).sort({ date: 1 }).limit(10)
     res.json(schedules)
   } catch (error) {
     console.error('Error fetching schedules:', error)
@@ -80,7 +80,7 @@ router.get('/hall-assignments', verifyToken, async (req, res) => {
     
     if (year) filter.year = year
 
-    const assignments = await HallAssignment.find(filter).sort({ examDate: 1 })
+    const assignments = await HallAssignment.find(filter).sort({ examDate: 1 }).limit(10)
     res.json(assignments)
   } catch (error) {
     console.error('Error fetching hall assignments:', error)
@@ -139,14 +139,15 @@ router.delete('/hall-assignments/:id', verifyToken, async (req, res) => {
 // Get marks
 router.get('/marks', verifyToken, async (req, res) => {
   try {
-    const { year, semester } = req.query
+    const { year, semester, rollNo } = req.query
     const filter = {}
     
     if (year) filter.year = year
     if (semester) filter.semester = semester
+    if (rollNo) filter.rollNo = rollNo
 
-    const marks = await Marks.find(filter).sort({ createdAt: -1 })
-    res.json(marks)
+    const marks = await Marks.find(filter).sort({ createdAt: -1 }).limit(10)
+    res.json(Array.isArray(marks) ? marks : [])
   } catch (error) {
     console.error('Error fetching marks:', error)
     res.status(500).json({ message: 'Error fetching marks', error: error.message })

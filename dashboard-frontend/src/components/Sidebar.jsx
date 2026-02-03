@@ -21,7 +21,23 @@ export default function Sidebar({ isOpen, userRole = 'student' }) {
     { icon: Bell, label: 'Notice Board', path: '/notice-board' },
   ]
 
-  const menuItems = userRole === 'faculty' ? facultyMenuItems : studentMenuItems
+  const hodMenuItems = [
+    { icon: Home, label: 'Dashboard', path: '/hod-dashboard' },
+    { icon: BookOpen, label: 'Department Details', path: '/hod-department-details' },
+    { icon: FileText, label: 'Exam Details', path: '/hod-exam-details' },
+    { icon: Ticket, label: 'Ticket', path: '/hod-ticket' },
+    { icon: Bell, label: 'Notice Board', path: '/hod-notice-board' },
+  ]
+
+  const adMenuItems = [
+    { icon: Home, label: 'Dashboard', path: '/ad-dashboard' },
+    { icon: BookOpen, label: 'Department Details', path: '/ad-department-details' },
+    { icon: FileText, label: 'Exam Details', path: '/ad-exam-details' },
+    { icon: Ticket, label: 'Ticket', path: '/ad-ticket' },
+    { icon: Bell, label: 'Notice Board', path: '/ad-notice-board' },
+  ]
+
+  const menuItems = userRole === 'faculty' ? facultyMenuItems : userRole === 'hod' ? hodMenuItems : userRole === 'ad' ? adMenuItems : studentMenuItems
 
   return (
     <aside className={`${isOpen ? 'w-64' : 'w-20'} bg-gray-800 border-r border-purple-500 transition-all duration-300 flex flex-col`}>

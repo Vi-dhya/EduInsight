@@ -3,8 +3,7 @@ import mongoose from 'mongoose'
 const internshipSchema = new mongoose.Schema({
   studentId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Student',
-    required: true
+    ref: 'Student'
   },
   rollNo: {
     type: String,
@@ -25,7 +24,7 @@ const internshipSchema = new mongoose.Schema({
   },
   parentPhone: {
     type: String,
-    required: true
+    default: '9876543210'
   },
   photocopy: {
     type: String // File path
@@ -34,10 +33,20 @@ const internshipSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  status: {
+    type: String,
+    enum: ['Pending', 'Accepted', 'Rejected'],
+    default: 'Pending'
+  },
   year: {
     type: String,
     required: true,
     enum: ['1st', '2nd', '3rd', '4th']
+  },
+  department: {
+    type: String,
+    required: true,
+    default: 'AI&DS'
   }
 }, {
   timestamps: true

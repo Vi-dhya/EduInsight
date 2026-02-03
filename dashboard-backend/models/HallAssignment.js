@@ -41,6 +41,13 @@ const hallAssignmentSchema = new mongoose.Schema({
   department: {
     type: String,
     default: 'AI&DS'
+  },
+  hallFile: {
+    type: String // File path for uploaded hall assignment PDF
+  },
+  ocrProcessed: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true

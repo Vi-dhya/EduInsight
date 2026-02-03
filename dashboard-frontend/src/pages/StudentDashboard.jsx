@@ -3,101 +3,107 @@ import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import SimplifiedHeader from '../components/SimplifiedHeader'
 import { Mail, Phone, MapPin, Users, Calendar, Droplet, AlertCircle } from 'lucide-react'
-import { departmentAPI } from '../services/api'
 
-export default function StudentDashboard({ onLogout }) {
+export default function StudentDashboard({ onLogout, userRole = 'student' }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [studentData, setStudentData] = useState(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
+  // Fetch student data from backend
   useEffect(() => {
-    const userEmail = localStorage.getItem('userEmail')
-    const rollNoMatch = userEmail?.match(/student(\d{8})/)
-    const rollNo = rollNoMatch ? rollNoMatch[1] : '23102060'
-    
-    fetchStudentData(rollNo)
+    fetchStudentData()
   }, [])
 
-  const fetchStudentData = async (rollNo) => {
+  const fetchStudentData = async () => {
     try {
-      setLoading(true)
-      // Try to fetch from all years since we don't know the student's year yet
-      let student = null
-      const years = ['1st', '2nd', '3rd', '4th']
-      
-      for (const year of years) {
-        const data = await departmentAPI.getStudents(year, 'AI&DS')
-        const students = Array.isArray(data.students) ? data.students : (Array.isArray(data) ? data : [])
-        student = students.find(s => s.rollNo === rollNo)
-        if (student) break
+      const userEmail = localStorage.getItem('userEmail')
+      const rollNoMatch = userEmail?.match(/student(\d+)@/)
+      const rollNo = rollNoMatch ? rollNoMatch[1] : null
+
+      if (!rollNo) {
+        setLoading(false)
+        return
       }
-      
-      if (student) {
-        console.log('Student found:', student)
-        setStudentData({
-          id: student._id,
-          name: student.name,
-          rollNo: student.rollNo,
-          dob: student.dob || '2003-05-15',
-          bloodGroup: student.bloodGroup || 'O+',
-          fatherName: student.fatherName || 'Mr. Kumar Singh',
-          motherName: student.motherName || 'Mrs. Priya Singh',
-          address: student.address || '123 Main Street, City, State - 560001',
-          photo: student.photo || 'https://via.placeholder.com/200',
-          year: student.year,
-          department: student.department,
-          email: student.collegeEmail,
-          phone: student.phone
-        })
+
+      const response = await fetch(`http://localhost:5007/api/department/students?rollNo=${rollNo}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const students = data.students || []
+        if (students.length > 0) {
+          setStudentData(students[0])
+        } else {
+          setStudentData(getHardcodedStudent(rollNo))
+        }
       } else {
-        console.log('Student not found with rollNo:', rollNo)
+        setStudentData(getHardcodedStudent(rollNo))
       }
     } catch (err) {
       console.error('Error fetching student data:', err)
+      const userEmail = localStorage.getItem('userEmail')
+      const rollNoMatch = userEmail?.match(/student(\d+)@/)
+      const rollNo = rollNoMatch ? rollNoMatch[1] : '23102001'
+      setStudentData(getHardcodedStudent(rollNo))
     } finally {
       setLoading(false)
     }
   }
+
+  const getHardcodedStudent = (rollNo) => {
+    const studentDataMap = {
+      '23102001': { name: 'Atchaya', rollNo: '23102001', dob: '12-03-2004', bloodGroup: 'O+', fatherName: 'Murugan', motherName: 'Kavitha', email: 'student23102001@college.edu', phone: '9876500001', year: '2nd', department: 'AI&DS', address: '12, Gandhi Street, Chennai' },
+      '23102002': { name: 'Ragul', rollNo: '23102002', dob: '25-07-2004', bloodGroup: 'B+', fatherName: 'Rajesh', motherName: 'Lakshmi', email: 'student23102002@college.edu', phone: '9876500002', year: '2nd', department: 'AI&DS', address: '45, Anna Nagar, Trichy' },
+      '23102003': { name: 'Rifath', rollNo: '23102003', dob: '09-11-2004', bloodGroup: 'A+', fatherName: 'Ibrahim', motherName: 'Ayesha', email: 'student23102003@college.edu', phone: '9876500003', year: '2nd', department: 'AI&DS', address: '78, Beach Road, Puducherry' },
+      '23102004': { name: 'Faouzia', rollNo: '23102004', dob: '18-02-2004', bloodGroup: 'AB+', fatherName: 'Farook', motherName: 'Noorjahan', email: 'student23102004@college.edu', phone: '9876500004', year: '2nd', department: 'AI&DS', address: '33, Market Street, Coimbatore' },
+      '23102005': { name: 'Sasidharan', rollNo: '23102005', dob: '30-06-2004', bloodGroup: 'O−', fatherName: 'Shankar', motherName: 'Meenakshi', email: 'student23102005@college.edu', phone: '9876500005', year: '2nd', department: 'AI&DS', address: '21, Temple Road, Madurai' },
+      '23102006': { name: 'Shree Prajan', rollNo: '23102006', dob: '14-09-2004', bloodGroup: 'B−', fatherName: 'Prakash', motherName: 'Saranya', email: 'student23102006@college.edu', phone: '9876500006', year: '2nd', department: 'AI&DS', address: '67, Lake View, Salem' },
+      '23102007': { name: 'Saran', rollNo: '23102007', dob: '05-01-2004', bloodGroup: 'A−', fatherName: 'Karthik', motherName: 'Deepa', email: 'student23102007@college.edu', phone: '9876500007', year: '2nd', department: 'AI&DS', address: '90, Bus Stand Road, Erode' },
+      '23102008': { name: 'Sowmiya', rollNo: '23102008', dob: '22-08-2004', bloodGroup: 'O+', fatherName: 'Ramesh', motherName: 'Vasanthi', email: 'student23102008@college.edu', phone: '9876500008', year: '2nd', department: 'AI&DS', address: '15, Park Street, Thanjavur' },
+      '23102009': { name: 'Pria Nandhini', rollNo: '23102009', dob: '11-04-2004', bloodGroup: 'AB−', fatherName: 'Nandha Kumar', motherName: 'Rajalakshmi', email: 'student23102009@college.edu', phone: '9876500009', year: '2nd', department: 'AI&DS', address: '56, Railway Colony, Vellore' },
+      '23102010': { name: 'Vimalesh', rollNo: '23102010', dob: '27-12-2004', bloodGroup: 'B+', fatherName: 'Manikandan', motherName: 'Sudha', email: 'student23102010@college.edu', phone: '9876500010', year: '2nd', department: 'AI&DS', address: '24, Hill View Road, Ooty' }
+    }
+    return studentDataMap[rollNo] || studentDataMap['23102001']
+  }
+
+  const collegeAchievements = [
+    { id: 1, title: 'NAAC Accreditation A+ Grade', description: 'Our college has been awarded NAAC accreditation with A+ grade for excellence in academics and infrastructure.', date: '2024-01-30', priority: 'high', icon: '🏆' },
+    { id: 2, title: 'New State-of-the-Art Lab Inaugurated', description: 'The college has inaugurated a new AI & ML laboratory with advanced computing facilities for student research.', date: '2024-01-28', priority: 'high', icon: '🔬' },
+    { id: 3, title: 'College Ranked in Top 50 Institutions', description: 'Our institution has been ranked among the top 50 engineering colleges in the country by NIRF rankings.', date: '2024-01-25', priority: 'medium', icon: '⭐' }
+  ]
 
   const handleLogout = () => {
     onLogout()
     navigate('/login')
   }
 
-  const news = [
-    {
-      id: 1,
-      title: 'NAAC Accreditation A+ Grade',
-      description: 'Our college has been awarded NAAC accreditation with A+ grade for excellence in academics and infrastructure.',
-      date: '2024-01-30',
-      priority: 'high',
-      icon: '🏆'
-    },
-    {
-      id: 2,
-      title: 'New State-of-the-Art Lab Inaugurated',
-      description: 'The college has inaugurated a new AI & ML laboratory with advanced computing facilities for student research.',
-      date: '2024-01-28',
-      priority: 'high',
-      icon: '🔬'
-    },
-    {
-      id: 3,
-      title: 'College Ranked in Top 50 Institutions',
-      description: 'Our institution has been ranked among the top 50 engineering colleges in the country by NIRF rankings.',
-      date: '2024-01-25',
-      priority: 'medium',
-      icon: '⭐'
-    }
-  ]
-
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-900">
-        <Sidebar isOpen={sidebarOpen} userRole="student" />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-white text-xl">Loading profile...</p>
+        <Sidebar isOpen={sidebarOpen} userRole={userRole} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <SimplifiedHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} onLogout={handleLogout} />
+          <main className="flex-1 flex items-center justify-center">
+            <p className="text-white text-xl">Loading...</p>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  if (!studentData) {
+    return (
+      <div className="flex h-screen bg-gray-900">
+        <Sidebar isOpen={sidebarOpen} userRole={userRole} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <SimplifiedHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} onLogout={handleLogout} />
+          <main className="flex-1 flex items-center justify-center">
+            <p className="text-white text-xl">No student data found</p>
+          </main>
         </div>
       </div>
     )
@@ -105,7 +111,7 @@ export default function StudentDashboard({ onLogout }) {
 
   return (
     <div className="flex h-screen bg-gray-900">
-      <Sidebar isOpen={sidebarOpen} userRole="student" />
+      <Sidebar isOpen={sidebarOpen} userRole={userRole} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <SimplifiedHeader 
@@ -118,92 +124,77 @@ export default function StudentDashboard({ onLogout }) {
           <div className="max-w-7xl mx-auto">
             <h1 className="text-4xl font-bold text-white mb-8">My Profile</h1>
             
-            {studentData && (
-              <>
-                {/* Student Details Card */}
-                <div className="glass-effect rounded-xl p-8 card-shadow mb-12">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    {/* Photo Section */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-48 h-48 rounded-lg bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mb-4 overflow-hidden border-4 border-purple-400">
-                        <img 
-                          src={studentData.photo} 
-                          alt={studentData.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <h2 className="text-2xl font-bold text-white text-center">{studentData.name}</h2>
-                      <p className="text-purple-400 font-semibold mt-2 text-lg">{studentData.rollNo}</p>
+            {/* Student Profile Card */}
+            <div className="glass-effect rounded-xl p-8 card-shadow mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {/* Photo Section - Left */}
+                <div className="flex flex-col items-center justify-start">
+                  <div className="w-40 h-40 rounded-lg bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mb-6 overflow-hidden border-4 border-purple-400">
+                    <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-white">
+                      {studentData.name.charAt(0)}
                     </div>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white text-center">{studentData.name}</h2>
+                  <p className="text-purple-400 font-semibold mt-2 text-lg">{studentData.rollNo}</p>
+                </div>
 
-                    {/* Details Section */}
-                    <div className="md:col-span-3">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Row 1 */}
-                        <div className="glass-effect rounded-lg p-4 border border-purple-500 border-opacity-30">
-                          <p className="text-gray-400 text-sm mb-1 flex items-center gap-2">
-                            <Calendar size={16} className="text-purple-400" /> Date of Birth
-                          </p>
-                          <p className="text-white font-semibold text-lg">{studentData.dob}</p>
-                        </div>
-                        <div className="glass-effect rounded-lg p-4 border border-purple-500 border-opacity-30">
-                          <p className="text-gray-400 text-sm mb-1 flex items-center gap-2">
-                            <Droplet size={16} className="text-red-400" /> Blood Group
-                          </p>
-                          <p className="text-white font-semibold text-lg">{studentData.bloodGroup}</p>
-                        </div>
-
-                        {/* Row 2 */}
-                        <div className="glass-effect rounded-lg p-4 border border-purple-500 border-opacity-30">
-                          <p className="text-gray-400 text-sm mb-1 flex items-center gap-2">
-                            <Users size={16} className="text-blue-400" /> Father's Name
-                          </p>
-                          <p className="text-white font-semibold">{studentData.fatherName}</p>
-                        </div>
-                        <div className="glass-effect rounded-lg p-4 border border-purple-500 border-opacity-30">
-                          <p className="text-gray-400 text-sm mb-1 flex items-center gap-2">
-                            <Users size={16} className="text-pink-400" /> Mother's Name
-                          </p>
-                          <p className="text-white font-semibold">{studentData.motherName}</p>
-                        </div>
-
-                        {/* Row 3 */}
-                        <div className="glass-effect rounded-lg p-4 border border-purple-500 border-opacity-30">
-                          <p className="text-gray-400 text-sm mb-1 flex items-center gap-2">
-                            <Mail size={16} className="text-green-400" /> Email
-                          </p>
-                          <p className="text-white font-semibold text-sm">{studentData.email}</p>
-                        </div>
-                        <div className="glass-effect rounded-lg p-4 border border-purple-500 border-opacity-30">
-                          <p className="text-gray-400 text-sm mb-1 flex items-center gap-2">
-                            <Phone size={16} className="text-yellow-400" /> Phone
-                          </p>
-                          <p className="text-white font-semibold">{studentData.phone}</p>
-                        </div>
-
-                        {/* Row 4 */}
-                        <div className="glass-effect rounded-lg p-4 border border-purple-500 border-opacity-30">
-                          <p className="text-gray-400 text-sm mb-1">Year</p>
-                          <p className="text-white font-semibold text-lg">{studentData.year}</p>
-                        </div>
-                        <div className="glass-effect rounded-lg p-4 border border-purple-500 border-opacity-30">
-                          <p className="text-gray-400 text-sm mb-1">Department</p>
-                          <p className="text-white font-semibold text-lg">{studentData.department}</p>
-                        </div>
-
-                        {/* Row 5 - Full Width Address */}
-                        <div className="md:col-span-2 glass-effect rounded-lg p-4 border border-purple-500 border-opacity-30">
-                          <p className="text-gray-400 text-sm mb-1 flex items-center gap-2">
-                            <MapPin size={16} className="text-orange-400" /> Address
-                          </p>
-                          <p className="text-white font-semibold">{studentData.address}</p>
-                        </div>
-                      </div>
+                {/* Profile Fields - Right (2 columns) */}
+                <div className="md:col-span-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <p className="text-gray-400 text-xs mb-2 flex items-center gap-2">
+                        <Calendar size={14} className="text-purple-400" /> Date of Birth
+                      </p>
+                      <p className="text-white font-semibold">{studentData.dob}</p>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <p className="text-gray-400 text-xs mb-2 flex items-center gap-2">
+                        <Droplet size={14} className="text-red-400" /> Blood Group
+                      </p>
+                      <p className="text-white font-semibold">{studentData.bloodGroup}</p>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <p className="text-gray-400 text-xs mb-2 flex items-center gap-2">
+                        <Users size={14} className="text-blue-400" /> Father's Name
+                      </p>
+                      <p className="text-white font-semibold">{studentData.fatherName}</p>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <p className="text-gray-400 text-xs mb-2 flex items-center gap-2">
+                        <Users size={14} className="text-pink-400" /> Mother's Name
+                      </p>
+                      <p className="text-white font-semibold">{studentData.motherName}</p>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <p className="text-gray-400 text-xs mb-2 flex items-center gap-2">
+                        <Mail size={14} className="text-green-400" /> Email
+                      </p>
+                      <p className="text-white font-semibold text-sm">{studentData.email}</p>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <p className="text-gray-400 text-xs mb-2 flex items-center gap-2">
+                        <Phone size={14} className="text-yellow-400" /> Phone
+                      </p>
+                      <p className="text-white font-semibold">{studentData.phone}</p>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <p className="text-gray-400 text-xs mb-2">Year</p>
+                      <p className="text-white font-semibold">{studentData.year}</p>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <p className="text-gray-400 text-xs mb-2">Department</p>
+                      <p className="text-white font-semibold">{studentData.department}</p>
+                    </div>
+                    <div className="col-span-2 bg-gray-800 rounded-lg p-4 border border-gray-700">
+                      <p className="text-gray-400 text-xs mb-2 flex items-center gap-2">
+                        <MapPin size={14} className="text-orange-400" /> Address
+                      </p>
+                      <p className="text-white font-semibold">{studentData.address}</p>
                     </div>
                   </div>
                 </div>
-              </>
-            )}
+              </div>
+            </div>
 
             {/* College Information & Achievements Section */}
             <div>
@@ -212,7 +203,7 @@ export default function StudentDashboard({ onLogout }) {
                 College Information & Achievements
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {news.map((item) => (
+                {collegeAchievements.map((item) => (
                   <div key={item.id} className="glass-effect rounded-xl p-6 card-shadow hover:scale-105 transition border border-purple-500 border-opacity-20">
                     <div className="flex items-start justify-between mb-4">
                       <span className="text-4xl">{item.icon}</span>

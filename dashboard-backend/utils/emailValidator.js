@@ -42,14 +42,9 @@ export const validateEmail = (email) => {
     }
   }
 
-  if (email.startsWith('student')) {
-    return validateStudentEmail(email)
-  } else if (email.startsWith('faculty')) {
-    return validateFacultyEmail(email)
-  } else {
-    return {
-      isValid: false,
-      error: 'Email must start with "student" or "faculty"'
-    }
+  // Accept any email format
+  return {
+    isValid: true,
+    error: null
   }
 }

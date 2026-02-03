@@ -2,173 +2,67 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import SimplifiedHeader from '../components/SimplifiedHeader'
-import { Upload, FileText, CheckCircle, XCircle, AlertCircle, Send, Phone } from 'lucide-react'
-import { departmentAPI, filesAPI } from '../services/api'
+import { Upload, Eye, Download, Trash2 } from 'lucide-react'
+import { departmentAPI } from '../services/api'
 
-export default function StudentDepartmentDetails({ onLogout }) {
+export default function StudentDepartmentDetails({ onLogout, userRole = 'student' }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState('certifications')
-  const [studentData, setStudentData] = useState({
-    name: '',
-    rollNo: '',
-    phone: '',
-    fatherPhone: '',
-    motherPhone: ''
-  })
-  const [showUploadForm, setShowUploadForm] = useState(false)
-  const [showInternshipForm, setShowInternshipForm] = useState(false)
+  const [showCertUpload, setShowCertUpload] = useState(false)
+  const [showInternUpload, setShowInternUpload] = useState(false)
+  const [certFile, setCertFile] = useState(null)
+  const [internFile, setInternFile] = useState(null)
+  const [certProtocol, setCertProtocol] = useState('coursera')
+  const [internType, setInternType] = useState('Internship')
+  const [loading, setLoading] = useState(false)
   const [certifications, setCertifications] = useState([])
   const [internships, setInternships] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [dataLoading, setDataLoading] = useState(false)
+  const [deleting, setDeleting] = useState(null)
   const navigate = useNavigate()
 
-  const [formData, setFormData] = useState({
-    certName: '',
-    file: null
-  })
+  // Extract rollNo from email
+  const getUserRollNo = () => {
+    const email = localStorage.getItem('userEmail')
+    const match = email.match(/student(\d+)@/)
+    return match ? match[1] : null
+  }
 
-  const [internshipFormData, setInternshipFormData] = useState({
-    type: 'Internship',
-    reason: '',
-    file: null
-  })
-
-  // Fetch student data and certifications on mount
+  // Fetch certifications and internships
   useEffect(() => {
-    const userEmail = localStorage.getItem('userEmail')
-    const rollNoMatch = userEmail?.match(/student(\d{8})/)
-    if (rollNoMatch) {
-      const rollNo = rollNoMatch[1]
-      setStudentData(prev => ({...prev, rollNo, name: `Student ${rollNo}`}))
-      fetchCertifications(rollNo)
-      fetchInternships(rollNo)
-    }
+    fetchData()
   }, [])
 
-  const fetchCertifications = async (rollNo) => {
+  const fetchData = async () => {
     try {
-      setLoading(true)
-      const data = await departmentAPI.getCertifications('2nd')
-      // API returns { count, certifications }
-      const allCerts = Array.isArray(data.certifications) ? data.certifications : (Array.isArray(data) ? data : [])
-      // Filter certifications for current student
-      const studentCerts = allCerts.filter(c => c.rollNo === rollNo || (c.studentId && c.studentId.rollNo === rollNo))
-      setCertifications(studentCerts)
-    } catch (err) {
-      setError('Failed to load certifications')
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchInternships = async (rollNo) => {
-    try {
-      const data = await departmentAPI.getInternships('2nd')
-      // API returns { count, internships }
-      const allInterns = Array.isArray(data.internships) ? data.internships : (Array.isArray(data) ? data : [])
-      // Filter internships for current student
-      const studentInterns = allInterns.filter(i => i.rollNo === rollNo || (i.studentId && i.studentId.rollNo === rollNo))
-      setInternships(studentInterns)
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  const handleInternshipFileChange = (e) => {
-    setInternshipFormData({...internshipFormData, file: e.target.files[0]})
-  }
-
-  const handleFileChange = (e) => {
-    setFormData({...formData, file: e.target.files[0]})
-  }
-
-  const handleUploadCert = async (e) => {
-    e.preventDefault()
-    if (!formData.certName || !formData.file) {
-      alert('Please fill all fields')
-      return
-    }
-
-    try {
-      setLoading(true)
-      // Upload file to backend
-      const fileResponse = await filesAPI.uploadCertificate(formData.file)
+      setDataLoading(true)
+      const rollNo = getUserRollNo()
       
-      // Add certification to database
-      const certData = {
-        name: studentData.name,
-        rollNo: studentData.rollNo,
-        cert: formData.certName,
-        status: 'Pending',
-        remarks: 'Awaiting review',
-        year: '2nd',
-        certificateFile: fileResponse.file.path
+      // Fetch certifications
+      const certsResponse = await fetch(`http://localhost:5007/api/department/certifications?rollNo=${rollNo}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      if (certsResponse.ok) {
+        const certsData = await certsResponse.json()
+        setCertifications(Array.isArray(certsData) ? certsData : [])
       }
-      
-      await departmentAPI.addCertification(certData)
-      
-      // Refresh certifications list
-      fetchCertifications(studentData.rollNo)
-      setFormData({ certName: '', file: null })
-      setShowUploadForm(false)
-      alert('Certificate uploaded successfully!')
-    } catch (err) {
-      console.error(err)
-      alert('Failed to upload certificate')
-    } finally {
-      setLoading(false)
-    }
-  }
 
-  const handleUploadInternship = async (e) => {
-    e.preventDefault()
-    if (!internshipFormData.type || !internshipFormData.reason || !internshipFormData.file) {
-      alert('Please fill all fields')
-      return
-    }
-
-    try {
-      setLoading(true)
-      // Upload file to backend
-      const fileResponse = await filesAPI.uploadInternship(internshipFormData.file)
-      
-      // Add internship to database
-      const internshipData = {
-        name: studentData.name,
-        rollNo: studentData.rollNo,
-        type: internshipFormData.type,
-        reason: internshipFormData.reason,
-        parentPhone: studentData.fatherPhone,
-        photocopy: fileResponse.file.path,
-        year: '2nd',
-        sentToParent: false
+      // Fetch internships
+      const internsResponse = await fetch(`http://localhost:5007/api/department/internships?rollNo=${rollNo}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      if (internsResponse.ok) {
+        const internsData = await internsResponse.json()
+        setInternships(Array.isArray(internsData) ? internsData : [])
       }
-      
-      await departmentAPI.addInternship(internshipData)
-      
-      // Refresh internships list
-      fetchInternships(studentData.rollNo)
-      setInternshipFormData({ type: 'Internship', reason: '', file: null })
-      setShowInternshipForm(false)
-      alert('Internship/Leave uploaded successfully!')
     } catch (err) {
-      console.error(err)
-      alert('Failed to upload internship')
+      console.error('Error fetching data:', err)
     } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSendToParent = async (internshipId) => {
-    try {
-      await departmentAPI.sendToParent(internshipId)
-      fetchInternships(studentData.rollNo)
-      alert('Sent to parent successfully!')
-    } catch (err) {
-      console.error(err)
-      alert('Failed to send to parent')
+      setDataLoading(false)
     }
   }
 
@@ -177,42 +71,159 @@ export default function StudentDepartmentDetails({ onLogout }) {
     navigate('/login')
   }
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'Accepted':
-        return 'bg-green-900 text-green-200'
-      case 'Rejected':
-        return 'bg-red-900 text-red-200'
-      case 'Pending':
-        return 'bg-yellow-900 text-yellow-200'
-      case 'Completed':
-        return 'bg-green-900 text-green-200'
-      case 'Approved':
-        return 'bg-green-900 text-green-200'
-      case 'Ongoing':
-        return 'bg-blue-900 text-blue-200'
-      default:
-        return 'bg-gray-700 text-gray-200'
+  const handleCertUpload = async () => {
+    if (!certFile) {
+      alert('Please select a file')
+      return
+    }
+
+    // Validate file type
+    const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'doc', 'docx']
+    const fileExtension = certFile.name.split('.').pop().toLowerCase()
+    if (!allowedExtensions.includes(fileExtension)) {
+      alert('Invalid file format. Allowed: PDF, JPG, JPEG, PNG, GIF, BMP, DOC, DOCX')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const formData = new FormData()
+      formData.append('file', certFile)
+      formData.append('protocol', certProtocol)
+
+      const response = await fetch('http://localhost:5007/api/files/upload-certificate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        alert('Certificate uploaded successfully!')
+        setShowCertUpload(false)
+        setCertFile(null)
+        // Refresh data
+        await new Promise(resolve => setTimeout(resolve, 500))
+        fetchData()
+      } else {
+        alert('Failed to upload certificate: ' + data.message)
+      }
+    } catch (err) {
+      console.error('Error uploading certificate:', err)
+      alert('Error uploading certificate: ' + err.message)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const getStatusIcon = (status) => {
-    switch(status) {
-      case 'Accepted':
-      case 'Completed':
-        return <CheckCircle size={18} className="text-green-400" />
-      case 'Rejected':
-        return <XCircle size={18} className="text-red-400" />
-      case 'Pending':
-        return <AlertCircle size={18} className="text-yellow-400" />
-      default:
-        return null
+  const handleInternUpload = async () => {
+    if (!internFile) {
+      alert('Please select a file')
+      return
+    }
+
+    // Validate file type
+    const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'doc', 'docx']
+    const fileExtension = internFile.name.split('.').pop().toLowerCase()
+    if (!allowedExtensions.includes(fileExtension)) {
+      alert('Invalid file format. Allowed: PDF, JPG, JPEG, PNG, GIF, BMP, DOC, DOCX')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const formData = new FormData()
+      formData.append('file', internFile)
+      formData.append('type', internType)
+
+      const response = await fetch('http://localhost:5007/api/files/upload-internship', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        alert('Internship/Leave document uploaded successfully!')
+        setShowInternUpload(false)
+        setInternFile(null)
+        // Refresh data
+        await new Promise(resolve => setTimeout(resolve, 500))
+        fetchData()
+      } else {
+        alert('Failed to upload document: ' + data.message)
+      }
+    } catch (err) {
+      console.error('Error uploading internship:', err)
+      alert('Error uploading document: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteCertification = async (certId) => {
+    if (!window.confirm('Are you sure you want to delete this certificate?')) {
+      return
+    }
+
+    try {
+      setDeleting(certId)
+      const response = await fetch(`http://localhost:5007/api/department/certifications/${certId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+
+      if (response.ok) {
+        alert('Certificate deleted successfully!')
+        fetchData()
+      } else {
+        alert('Failed to delete certificate')
+      }
+    } catch (err) {
+      console.error('Error deleting certificate:', err)
+      alert('Error deleting certificate: ' + err.message)
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  const handleDeleteInternship = async (internId) => {
+    if (!window.confirm('Are you sure you want to delete this internship/leave record?')) {
+      return
+    }
+
+    try {
+      setDeleting(internId)
+      const response = await fetch(`http://localhost:5007/api/department/internships/${internId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+
+      if (response.ok) {
+        alert('Internship/Leave record deleted successfully!')
+        fetchData()
+      } else {
+        alert('Failed to delete internship/leave record')
+      }
+    } catch (err) {
+      console.error('Error deleting internship:', err)
+      alert('Error deleting internship/leave record: ' + err.message)
+    } finally {
+      setDeleting(null)
     }
   }
 
   return (
     <div className="flex h-screen bg-gray-900">
-      <Sidebar isOpen={sidebarOpen} userRole="student" />
+      <Sidebar isOpen={sidebarOpen} userRole={userRole} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <SimplifiedHeader 
@@ -222,8 +233,8 @@ export default function StudentDepartmentDetails({ onLogout }) {
         />
 
         <main className="flex-1 overflow-auto p-6">
-          <div className="max-w-6xl mx-auto">
-            <h1 className="text-4xl font-bold text-white mb-8">My Details</h1>
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-4xl font-bold text-white mb-8">Department Details</h1>
 
             <div className="flex gap-4 mb-8 border-b border-purple-500">
               {['certifications', 'internships'].map(tab => (
@@ -236,66 +247,70 @@ export default function StudentDepartmentDetails({ onLogout }) {
                       : 'text-gray-400 hover:text-gray-300'
                   }`}
                 >
-                  {tab === 'certifications' ? 'Certifications' : 'Internships'}
+                  {tab === 'certifications' && 'Certifications'}
+                  {tab === 'internships' && 'Internships/Leave'}
                 </button>
               ))}
             </div>
 
+            {/* Certifications Tab */}
             {activeTab === 'certifications' && (
-              <>
-                <div className="flex justify-end mb-6">
+              <div>
+                <div className="mb-6 flex justify-end">
                   <button
-                    onClick={() => setShowUploadForm(!showUploadForm)}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold flex items-center gap-2 transition"
+                    onClick={() => setShowCertUpload(!showCertUpload)}
+                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold flex items-center gap-2 transition"
                   >
                     <Upload size={20} />
                     Upload Certificate
                   </button>
                 </div>
 
-                {showUploadForm && (
-                  <div className="glass-effect rounded-xl p-6 card-shadow mb-8">
-                    <h2 className="text-2xl font-bold text-white mb-6">Upload New Certificate</h2>
-                    <form onSubmit={handleUploadCert} className="space-y-4">
+                {showCertUpload && (
+                  <div className="glass-effect rounded-xl p-6 card-shadow mb-6">
+                    <h2 className="text-2xl font-bold text-white mb-4">Upload Certificate</h2>
+                    <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-200 mb-2">Certificate Name</label>
-                        <input
-                          type="text"
-                          value={formData.certName}
-                          onChange={(e) => setFormData({...formData, certName: e.target.value})}
-                          placeholder="e.g., AWS Certified Solutions Architect"
-                          className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 transition"
-                          required
-                        />
+                        <label className="block text-sm font-medium text-gray-200 mb-2">Select Protocol</label>
+                        <select
+                          value={certProtocol}
+                          onChange={(e) => setCertProtocol(e.target.value)}
+                          className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-gray-300 focus:outline-none focus:border-purple-400 transition"
+                        >
+                          <option value="coursera">Coursera</option>
+                          <option value="udemy">Udemy</option>
+                          <option value="edx">EdX</option>
+                          <option value="other">Other</option>
+                        </select>
                       </div>
-
                       <div>
-                        <label className="block text-sm font-medium text-gray-200 mb-2">Upload Certificate File</label>
+                        <label className="block text-sm font-medium text-gray-200 mb-2">Select Certificate File</label>
                         <input
                           type="file"
-                          onChange={handleFileChange}
-                          accept=".pdf,.doc,.docx,.jpg,.png"
+                          onChange={(e) => setCertFile(e.target.files[0])}
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                           className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-gray-300 focus:outline-none focus:border-purple-400 transition"
-                          required
                         />
                       </div>
-
                       <div className="flex gap-4">
                         <button
-                          type="submit"
-                          className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
+                          onClick={handleCertUpload}
+                          disabled={loading}
+                          className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50"
                         >
-                          Upload Certificate
+                          {loading ? 'Uploading...' : 'Upload'}
                         </button>
                         <button
-                          type="button"
-                          onClick={() => setShowUploadForm(false)}
+                          onClick={() => {
+                            setShowCertUpload(false)
+                            setCertFile(null)
+                          }}
                           className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition"
                         >
                           Cancel
                         </button>
                       </div>
-                    </form>
+                    </div>
                   </div>
                 )}
 
@@ -304,114 +319,126 @@ export default function StudentDepartmentDetails({ onLogout }) {
                     <table className="w-full">
                       <thead className="bg-gradient-to-r from-purple-600 to-blue-600">
                         <tr>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Student Name</th>
                           <th className="px-4 py-3 text-left text-white font-semibold">Roll No</th>
+                          <th className="px-4 py-3 text-left text-white font-semibold">Name</th>
                           <th className="px-4 py-3 text-left text-white font-semibold">Certificate Name</th>
+                          <th className="px-4 py-3 text-left text-white font-semibold">Protocol</th>
+                          <th className="px-4 py-3 text-left text-white font-semibold">Credits</th>
                           <th className="px-4 py-3 text-left text-white font-semibold">Status</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Remarks</th>
                           <th className="px-4 py-3 text-left text-white font-semibold">File</th>
+                          <th className="px-4 py-3 text-left text-white font-semibold">Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {certifications.map((cert, idx) => (
-                          <tr key={cert._id || idx} className={`border-t border-gray-700 ${idx % 2 === 0 ? 'bg-gray-800' : 'bg-gray-750'} hover:bg-gray-700 transition`}>
-                            <td className="px-4 py-3 text-white font-medium">{cert.studentId?.name || cert.name || 'N/A'}</td>
-                            <td className="px-4 py-3 text-white font-medium">{cert.studentId?.rollNo || cert.rollNo || 'N/A'}</td>
-                            <td className="px-4 py-3 text-gray-300">{cert.cert || cert.certificateName || 'N/A'}</td>
-                            <td className="px-4 py-3">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getStatusColor(cert.status)}`}>
-                                {getStatusIcon(cert.status)}
-                                {cert.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-gray-300">{cert.remarks || 'N/A'}</td>
-                            <td className="px-4 py-3">
-                              {cert.certificateFile ? (
-                                <div className="flex items-center gap-2 text-purple-400">
-                                  <FileText size={16} />
-                                  <span className="text-sm">{cert.certificateFile.split('/').pop()}</span>
-                                </div>
-                              ) : (
-                                <span className="text-gray-500 text-sm">-</span>
-                              )}
-                            </td>
+                        {certifications.length === 0 ? (
+                          <tr className="border-t border-gray-700 bg-gray-800 hover:bg-gray-700 transition">
+                            <td colSpan="8" className="px-4 py-3 text-center text-gray-400">No certifications uploaded yet</td>
                           </tr>
-                        ))}
+                        ) : (
+                          certifications.map((cert) => (
+                            <tr key={cert._id} className="border-t border-gray-700 bg-gray-800 hover:bg-gray-700 transition">
+                              <td className="px-4 py-3 text-white">{cert.rollNo}</td>
+                              <td className="px-4 py-3 text-white">{cert.name}</td>
+                              <td className="px-4 py-3 text-gray-300">{cert.cert}</td>
+                              <td className="px-4 py-3 text-gray-300">{cert.protocol}</td>
+                              <td className="px-4 py-3 text-gray-300">{cert.credits}</td>
+                              <td className="px-4 py-3">
+                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                  cert.status === 'Accepted' ? 'bg-green-900 text-green-200' :
+                                  cert.status === 'Rejected' ? 'bg-red-900 text-red-200' :
+                                  'bg-yellow-900 text-yellow-200'
+                                }`}>
+                                  {cert.status || 'Pending'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <a
+                                  href={`http://localhost:5007${cert.certificateFile}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:text-blue-300"
+                                  title="Download Certificate"
+                                >
+                                  <Download size={18} />
+                                </a>
+                              </td>
+                              <td className="px-4 py-3">
+                                <button
+                                  onClick={() => handleDeleteCertification(cert._id)}
+                                  disabled={deleting === cert._id}
+                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-semibold flex items-center gap-1 transition disabled:opacity-50"
+                                >
+                                  <Trash2 size={16} />
+                                  {deleting === cert._id ? 'Deleting...' : 'Delete'}
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
                 </div>
-              </>
+              </div>
             )}
 
+            {/* Internships/Leave Tab */}
             {activeTab === 'internships' && (
-              <>
-                <div className="flex justify-end mb-6">
+              <div>
+                <div className="mb-6 flex justify-end">
                   <button
-                    onClick={() => setShowInternshipForm(!showInternshipForm)}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold flex items-center gap-2 transition"
+                    onClick={() => setShowInternUpload(!showInternUpload)}
+                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold flex items-center gap-2 transition"
                   >
                     <Upload size={20} />
                     Upload Internship/Leave
                   </button>
                 </div>
 
-                {showInternshipForm && (
-                  <div className="glass-effect rounded-xl p-6 card-shadow mb-8">
-                    <h2 className="text-2xl font-bold text-white mb-6">Upload Internship/Leave</h2>
-                    <form onSubmit={handleUploadInternship} className="space-y-4">
+                {showInternUpload && (
+                  <div className="glass-effect rounded-xl p-6 card-shadow mb-6">
+                    <h2 className="text-2xl font-bold text-white mb-4">Upload Internship/Leave Document</h2>
+                    <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-200 mb-2">Type</label>
+                        <label className="block text-sm font-medium text-gray-200 mb-2">Select Type</label>
                         <select
-                          value={internshipFormData.type}
-                          onChange={(e) => setInternshipFormData({...internshipFormData, type: e.target.value})}
-                          className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-white focus:outline-none focus:border-purple-400 transition"
-                          required
+                          value={internType}
+                          onChange={(e) => setInternType(e.target.value)}
+                          className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-gray-300 focus:outline-none focus:border-purple-400 transition"
                         >
                           <option value="Internship">Internship</option>
                           <option value="Leave">Leave</option>
+                          <option value="Project">Project</option>
                         </select>
                       </div>
-
                       <div>
-                        <label className="block text-sm font-medium text-gray-200 mb-2">Reason</label>
-                        <textarea
-                          value={internshipFormData.reason}
-                          onChange={(e) => setInternshipFormData({...internshipFormData, reason: e.target.value})}
-                          placeholder="Enter reason for internship or leave"
-                          className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 transition resize-none"
-                          rows="4"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-200 mb-2">Upload Document</label>
+                        <label className="block text-sm font-medium text-gray-200 mb-2">Select Document File</label>
                         <input
                           type="file"
-                          onChange={handleInternshipFileChange}
-                          accept=".pdf,.doc,.docx,.jpg,.png"
+                          onChange={(e) => setInternFile(e.target.files[0])}
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                           className="w-full px-4 py-2 bg-gray-800 border border-purple-500 rounded-lg text-gray-300 focus:outline-none focus:border-purple-400 transition"
-                          required
                         />
                       </div>
-
                       <div className="flex gap-4">
                         <button
-                          type="submit"
-                          className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
+                          onClick={handleInternUpload}
+                          disabled={loading}
+                          className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50"
                         >
-                          Submit
+                          {loading ? 'Uploading...' : 'Upload'}
                         </button>
                         <button
-                          type="button"
-                          onClick={() => setShowInternshipForm(false)}
+                          onClick={() => {
+                            setShowInternUpload(false)
+                            setInternFile(null)
+                          }}
                           className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition"
                         >
                           Cancel
                         </button>
                       </div>
-                    </form>
+                    </div>
                   </div>
                 )}
 
@@ -420,41 +447,67 @@ export default function StudentDepartmentDetails({ onLogout }) {
                     <table className="w-full">
                       <thead className="bg-gradient-to-r from-purple-600 to-blue-600">
                         <tr>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Student Name</th>
                           <th className="px-4 py-3 text-left text-white font-semibold">Roll No</th>
+                          <th className="px-4 py-3 text-left text-white font-semibold">Name</th>
                           <th className="px-4 py-3 text-left text-white font-semibold">Type</th>
                           <th className="px-4 py-3 text-left text-white font-semibold">Reason</th>
                           <th className="px-4 py-3 text-left text-white font-semibold">Status</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Remarks</th>
+                          <th className="px-4 py-3 text-left text-white font-semibold">Sent to Parent</th>
+                          <th className="px-4 py-3 text-left text-white font-semibold">File</th>
+                          <th className="px-4 py-3 text-left text-white font-semibold">Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {internships.map((intern, idx) => (
-                          <tr key={intern._id || idx} className={`border-t border-gray-700 ${idx % 2 === 0 ? 'bg-gray-800' : 'bg-gray-750'} hover:bg-gray-700 transition`}>
-                            <td className="px-4 py-3 text-white font-medium">{intern.studentId?.name || intern.name || 'N/A'}</td>
-                            <td className="px-4 py-3 text-white font-medium">{intern.studentId?.rollNo || intern.rollNo || 'N/A'}</td>
-                            <td className="px-4 py-3">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                intern.type === 'Internship' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200'
-                              }`}>
-                                {intern.type}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-gray-300 text-sm">{intern.reason || 'N/A'}</td>
-                            <td className="px-4 py-3">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getStatusColor(intern.status)}`}>
-                                {getStatusIcon(intern.status)}
-                                {intern.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-gray-300">{intern.remarks || 'N/A'}</td>
+                        {internships.length === 0 ? (
+                          <tr className="border-t border-gray-700 bg-gray-800 hover:bg-gray-700 transition">
+                            <td colSpan="8" className="px-4 py-3 text-center text-gray-400">No internships/leave uploaded yet</td>
                           </tr>
-                        ))}
+                        ) : (
+                          internships.map((intern) => (
+                            <tr key={intern._id} className="border-t border-gray-700 bg-gray-800 hover:bg-gray-700 transition">
+                              <td className="px-4 py-3 text-white">{intern.rollNo}</td>
+                              <td className="px-4 py-3 text-white">{intern.name}</td>
+                              <td className="px-4 py-3 text-gray-300">{intern.type}</td>
+                              <td className="px-4 py-3 text-gray-300">{intern.reason}</td>
+                              <td className="px-4 py-3">
+                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                  intern.status === 'Accepted' ? 'bg-green-900 text-green-200' :
+                                  intern.status === 'Rejected' ? 'bg-red-900 text-red-200' :
+                                  'bg-yellow-900 text-yellow-200'
+                                }`}>
+                                  {intern.status || 'Pending'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-gray-300">{intern.sentToParent ? 'Yes' : 'No'}</td>
+                              <td className="px-4 py-3">
+                                <a
+                                  href={`http://localhost:5007${intern.photocopy}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:text-blue-300"
+                                  title="Download Document"
+                                >
+                                  <Download size={18} />
+                                </a>
+                              </td>
+                              <td className="px-4 py-3">
+                                <button
+                                  onClick={() => handleDeleteInternship(intern._id)}
+                                  disabled={deleting === intern._id}
+                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-semibold flex items-center gap-1 transition disabled:opacity-50"
+                                >
+                                  <Trash2 size={16} />
+                                  {deleting === intern._id ? 'Deleting...' : 'Delete'}
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </main>

@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import SimplifiedHeader from '../components/SimplifiedHeader'
-import { Save, Bell, Lock, Eye, User, Mail, Phone, MapPin, BookOpen, Edit2, Check, X, AlertCircle } from 'lucide-react'
+import { Save, Lock, Eye, User, Mail, Phone, BookOpen, Edit2, Check, X, AlertCircle } from 'lucide-react'
 
 export default function Settings({ onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
-  const [isEditingDepartment, setIsEditingDepartment] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
@@ -22,17 +21,7 @@ export default function Settings({ onLogout }) {
     profileImage: '👨‍🏫'
   })
 
-  const [departmentDetails, setDepartmentDetails] = useState({
-    department: 'AI&DS',
-    specialization: 'Machine Learning & AI',
-    officeLocation: 'Block A, Room 201',
-    officeHours: 'Monday - Friday, 2:00 PM - 4:00 PM',
-    courses: 'Data Structures, Machine Learning, Deep Learning',
-    researchInterests: 'Neural Networks, NLP, Computer Vision'
-  })
-
   const [editedProfile, setEditedProfile] = useState(facultyProfile)
-  const [editedDepartment, setEditedDepartment] = useState(departmentDetails)
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -43,8 +32,6 @@ export default function Settings({ onLogout }) {
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem('appSettings')
     return saved ? JSON.parse(saved) : {
-      emailNotifications: true,
-      smsNotifications: false,
       darkMode: true,
       twoFactorAuth: false,
     }
@@ -81,23 +68,6 @@ export default function Settings({ onLogout }) {
     setIsEditingProfile(false)
   }
 
-  const handleSaveDepartment = () => {
-    if (!editedDepartment.department || !editedDepartment.specialization) {
-      setErrorMessage('Please fill in all required fields')
-      setTimeout(() => setErrorMessage(''), 3000)
-      return
-    }
-    setDepartmentDetails(editedDepartment)
-    setIsEditingDepartment(false)
-    setSuccessMessage('Department details updated successfully!')
-    setTimeout(() => setSuccessMessage(''), 3000)
-  }
-
-  const handleCancelDepartment = () => {
-    setEditedDepartment(departmentDetails)
-    setIsEditingDepartment(false)
-  }
-
   const handleChangePassword = () => {
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
       setErrorMessage('Please fill in all password fields')
@@ -122,28 +92,6 @@ export default function Settings({ onLogout }) {
 
   const handleSave = () => {
     setSuccessMessage('All settings saved successfully!')
-    setTimeout(() => setSuccessMessage(''), 3000)
-  }
-
-  const handleVerifyEmail = () => {
-    setSuccessMessage('Verification email sent to ' + facultyProfile.email)
-    setTimeout(() => setSuccessMessage(''), 3000)
-  }
-
-  const handleExportData = () => {
-    const data = {
-      profile: facultyProfile,
-      department: departmentDetails,
-      settings: settings
-    }
-    const dataStr = JSON.stringify(data, null, 2)
-    const dataBlob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(dataBlob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'profile-data.json'
-    link.click()
-    setSuccessMessage('Data exported successfully!')
     setTimeout(() => setSuccessMessage(''), 3000)
   }
 
@@ -312,185 +260,6 @@ export default function Settings({ onLogout }) {
               )}
             </div>
 
-            {/* Department Details Section */}
-            <div className="glass-effect rounded-xl p-8 card-shadow mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <MapPin className="text-purple-400" size={28} />
-                  Department Details
-                </h2>
-                <button
-                  onClick={() => {
-                    setIsEditingDepartment(!isEditingDepartment)
-                    setEditedDepartment(departmentDetails)
-                  }}
-                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition flex items-center gap-2 font-semibold"
-                >
-                  <Edit2 size={18} />
-                  {isEditingDepartment ? 'Cancel' : 'Edit Details'}
-                </button>
-              </div>
-
-              {isEditingDepartment ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-gray-300 text-sm font-semibold mb-2 block">Department</label>
-                      <input
-                        type="text"
-                        value={editedDepartment.department}
-                        onChange={(e) => setEditedDepartment({...editedDepartment, department: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800 border border-purple-400 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-gray-300 text-sm font-semibold mb-2 block">Specialization</label>
-                      <input
-                        type="text"
-                        value={editedDepartment.specialization}
-                        onChange={(e) => setEditedDepartment({...editedDepartment, specialization: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800 border border-purple-400 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-gray-300 text-sm font-semibold mb-2 block">Office Location</label>
-                      <input
-                        type="text"
-                        value={editedDepartment.officeLocation}
-                        onChange={(e) => setEditedDepartment({...editedDepartment, officeLocation: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800 border border-purple-400 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-gray-300 text-sm font-semibold mb-2 block">Office Hours</label>
-                      <input
-                        type="text"
-                        value={editedDepartment.officeHours}
-                        onChange={(e) => setEditedDepartment({...editedDepartment, officeHours: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800 border border-purple-400 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="text-gray-300 text-sm font-semibold mb-2 block">Courses Teaching</label>
-                      <textarea
-                        value={editedDepartment.courses}
-                        onChange={(e) => setEditedDepartment({...editedDepartment, courses: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800 border border-purple-400 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                        rows="2"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="text-gray-300 text-sm font-semibold mb-2 block">Research Interests</label>
-                      <textarea
-                        value={editedDepartment.researchInterests}
-                        onChange={(e) => setEditedDepartment({...editedDepartment, researchInterests: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800 border border-purple-400 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                        rows="2"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-4 pt-4">
-                    <button
-                      onClick={handleSaveDepartment}
-                      className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition flex items-center gap-2 font-semibold"
-                    >
-                      <Check size={18} />
-                      Save Details
-                    </button>
-                    <button
-                      onClick={handleCancelDepartment}
-                      className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center gap-2 font-semibold"
-                    >
-                      <X size={18} />
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <p className="text-gray-400 text-sm mb-1">Department</p>
-                    <p className="text-white font-semibold text-lg">{departmentDetails.department}</p>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <p className="text-gray-400 text-sm mb-1">Specialization</p>
-                    <p className="text-white font-semibold text-lg">{departmentDetails.specialization}</p>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <p className="text-gray-400 text-sm mb-1">Office Location</p>
-                    <p className="text-white font-semibold">{departmentDetails.officeLocation}</p>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <p className="text-gray-400 text-sm mb-1">Office Hours</p>
-                    <p className="text-white font-semibold">{departmentDetails.officeHours}</p>
-                  </div>
-                  <div className="md:col-span-2 bg-gray-800 rounded-lg p-4">
-                    <p className="text-gray-400 text-sm mb-1">Courses Teaching</p>
-                    <p className="text-white font-semibold">{departmentDetails.courses}</p>
-                  </div>
-                  <div className="md:col-span-2 bg-gray-800 rounded-lg p-4">
-                    <p className="text-gray-400 text-sm mb-1">Research Interests</p>
-                    <p className="text-white font-semibold">{departmentDetails.researchInterests}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Notification Settings */}
-            <div className="glass-effect rounded-xl p-6 card-shadow mb-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Bell className="text-purple-400" size={24} />
-                <h2 className="text-2xl font-bold text-white">Notifications</h2>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                  <div>
-                    <p className="text-white font-semibold">Email Notifications</p>
-                    <p className="text-gray-400 text-sm">Receive updates via email</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.emailNotifications}
-                      onChange={() => handleSettingChange('emailNotifications')}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                  <div>
-                    <p className="text-white font-semibold">SMS Notifications</p>
-                    <p className="text-gray-400 text-sm">Receive updates via SMS</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.smsNotifications}
-                      onChange={() => handleSettingChange('smsNotifications')}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                  <div>
-                    <p className="text-white font-semibold">Verify Email Address</p>
-                    <p className="text-gray-400 text-sm">Send verification email to {facultyProfile.email}</p>
-                  </div>
-                  <button
-                    onClick={handleVerifyEmail}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-semibold text-sm"
-                  >
-                    Verify
-                  </button>
-                </div>
-              </div>
-            </div>
-
             {/* Display Settings */}
             <div className="glass-effect rounded-xl p-6 card-shadow mb-6">
               <div className="flex items-center gap-3 mb-6">
@@ -617,13 +386,6 @@ export default function Settings({ onLogout }) {
               >
                 <Save size={20} />
                 Save Settings
-              </button>
-              <button
-                onClick={handleExportData}
-                className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg transition flex items-center gap-2 font-semibold"
-              >
-                <Mail size={20} />
-                Export Data
               </button>
               <button
                 onClick={() => {

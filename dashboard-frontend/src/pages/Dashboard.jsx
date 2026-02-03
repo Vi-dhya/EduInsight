@@ -12,35 +12,35 @@ export default function Dashboard({ onLogout, userRole = 'student' }) {
   const [showYearDropdown, setShowYearDropdown] = useState(false)
   const navigate = useNavigate()
 
-  // Analytics data for different years
+  // Analytics data for different years (based on 10 students displayed in Department Details)
   const analyticsData = {
     '2nd': {
-      totalStudents: 50,
-      passCount: 31,
-      failCount: 19,
+      totalStudents: 10,
+      passCount: 6,
+      failCount: 4,
       certifications: {
-        approved: 22,
-        pending: 26,
-        rejected: 2
+        approved: 4,
+        pending: 5,
+        rejected: 1
       }
     },
     '3rd': {
-      totalStudents: 45,
-      passCount: 38,
-      failCount: 7,
+      totalStudents: 10,
+      passCount: 8,
+      failCount: 2,
       certifications: {
-        approved: 35,
-        pending: 8,
-        rejected: 2
+        approved: 7,
+        pending: 2,
+        rejected: 1
       }
     },
     '4th': {
-      totalStudents: 40,
-      passCount: 39,
+      totalStudents: 10,
+      passCount: 9,
       failCount: 1,
       certifications: {
-        approved: 38,
-        pending: 2,
+        approved: 8,
+        pending: 1,
         rejected: 0
       }
     }

@@ -1,74 +1,242 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import SimplifiedHeader from '../components/SimplifiedHeader'
 import YearDropdown from '../components/YearDropdown'
-import { Upload } from 'lucide-react'
+import { Upload, Eye, Download, FileText, X } from 'lucide-react'
+import { examAPI, filesAPI } from '../services/api'
 
-export default function ExamDetails({ onLogout }) {
+export default function ExamDetails({ onLogout, userRole = 'faculty' }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedYear, setSelectedYear] = useState('2nd')
   const [activeTab, setActiveTab] = useState('schedule')
   const [marksFilter, setMarksFilter] = useState('all')
+  const [examSchedules, setExamSchedules] = useState([])
+  const [hallAssignments, setHallAssignments] = useState([])
+  const [marks, setMarks] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [showScheduleUpload, setShowScheduleUpload] = useState(null)
+  const [scheduleFile, setScheduleFile] = useState(null)
+  const [showHallUpload, setShowHallUpload] = useState(false)
+  const [hallFile, setHallFile] = useState(null)
+  const [viewingMarkFile, setViewingMarkFile] = useState(null)
+  const [uploadingCourse, setUploadingCourse] = useState(null)
+  const [uploadingType, setUploadingType] = useState(null)
+  const [uploadFile, setUploadFile] = useState(null)
+  const [selectedSemester, setSelectedSemester] = useState('Semester 1')
+  const [selectedCourse, setSelectedCourse] = useState('Deep Learning')
+  const [selectedMarksSemester, setSelectedMarksSemester] = useState('Semester 1')
   const navigate = useNavigate()
 
-  const [examSchedules] = useState([
-    { id: 1, date: '2024-02-15', day: 'Thursday', courseName: 'Data Structures', semester: '4th', timing: '10:00 AM - 1:00 PM', year: '2nd' },
-    { id: 2, date: '2024-02-16', day: 'Friday', courseName: 'Web Development', semester: '4th', timing: '2:00 PM - 5:00 PM', year: '2nd' },
-    { id: 3, date: '2024-02-17', day: 'Saturday', courseName: 'Database Management', semester: '4th', timing: '10:00 AM - 1:00 PM', year: '2nd' },
-    { id: 4, date: '2024-02-18', day: 'Sunday', courseName: 'Operating Systems', semester: '4th', timing: '2:00 PM - 5:00 PM', year: '2nd' },
-    { id: 5, date: '2024-02-19', day: 'Monday', courseName: 'Machine Learning', semester: '6th', timing: '10:00 AM - 1:00 PM', year: '3rd' },
-    { id: 6, date: '2024-02-20', day: 'Tuesday', courseName: 'Cloud Computing', semester: '6th', timing: '2:00 PM - 5:00 PM', year: '3rd' },
-    { id: 7, date: '2024-02-21', day: 'Wednesday', courseName: 'AI & NLP', semester: '8th', timing: '10:00 AM - 1:00 PM', year: '4th' },
-  ])
+  const courses = [
+    'Deep Learning',
+    'Information Security Management',
+    'Web Technology',
+    'Business Analytics',
+    'Software Testing',
+    'Digital Marketing'
+  ]
 
-  const [hallAssignments] = useState([
-    { id: 1, rollNo: '1001', name: 'Raj Kumar', year: '2nd', block: 'A', hallNo: 'A-101', seatNo: '15', examName: 'Data Structures', examDate: '2024-02-15', duration: '3 hours' },
-    { id: 2, rollNo: '1002', name: 'Priya Singh', year: '2nd', block: 'A', hallNo: 'A-102', seatNo: '20', examName: 'Data Structures', examDate: '2024-02-15', duration: '3 hours' },
-    { id: 3, rollNo: '1003', name: 'Amit Patel', year: '2nd', block: 'B', hallNo: 'B-101', seatNo: '10', examName: 'Web Development', examDate: '2024-02-16', duration: '3 hours' },
-    { id: 4, rollNo: '1004', name: 'Neha Sharma', year: '2nd', block: 'B', hallNo: 'B-102', seatNo: '25', examName: 'Web Development', examDate: '2024-02-16', duration: '3 hours' },
-    { id: 5, rollNo: '1005', name: 'Vikram Singh', year: '2nd', block: 'A', hallNo: 'A-103', seatNo: '18', examName: 'Database Management', examDate: '2024-02-17', duration: '3 hours' },
-    { id: 6, rollNo: '2001', name: 'Anjali Verma', year: '3rd', block: 'C', hallNo: 'C-201', seatNo: '30', examName: 'Machine Learning', examDate: '2024-02-19', duration: '3 hours' },
-    { id: 7, rollNo: '2002', name: 'Rohan Kumar', year: '3rd', block: 'C', hallNo: 'C-202', seatNo: '35', examName: 'Machine Learning', examDate: '2024-02-19', duration: '3 hours' },
-    { id: 8, rollNo: '3001', name: 'Sneha Patel', year: '4th', block: 'D', hallNo: 'D-301', seatNo: '45', examName: 'AI & NLP', examDate: '2024-02-21', duration: '3 hours' },
-  ])
+  const semesters = [
+    'Semester 1',
+    'Semester 2',
+    'Semester 3',
+    'Semester 4',
+    'Semester 5',
+    'Semester 6',
+    'Semester 7',
+    'Semester 8'
+  ]
 
-  const [marks] = useState([
-    { id: 1, rollNo: '23102060', name: 'Raj Kumar', course: 'Data Structures', internal1: 18, internal2: 19, total: 85, grade: 'A', status: 'Pass', year: '2nd' },
-    { id: 2, rollNo: '23102061', name: 'Priya Singh', course: 'Data Structures', internal1: 20, internal2: 20, total: 92, grade: 'A+', status: 'Pass', year: '2nd' },
-    { id: 3, rollNo: '23102062', name: 'Amit Patel', course: 'Web Development', internal1: 16, internal2: 17, total: 78, grade: 'B', status: 'Pass', year: '2nd' },
-    { id: 4, rollNo: '23102063', name: 'Neha Sharma', course: 'Database Management', internal1: 12, internal2: 11, total: 45, grade: 'F', status: 'Arrear', year: '2nd' },
-    { id: 5, rollNo: '23103001', name: 'Vikram Singh', course: 'Machine Learning', internal1: 19, internal2: 20, total: 88, grade: 'A', status: 'Pass', year: '3rd' },
-    { id: 6, rollNo: '23103002', name: 'Anjali Verma', course: 'Cloud Computing', internal1: 14, internal2: 13, total: 52, grade: 'F', status: 'Arrear', year: '3rd' },
-    { id: 7, rollNo: '23104001', name: 'Neha Sharma', course: 'AI & NLP', internal1: 20, internal2: 20, total: 95, grade: 'A+', status: 'Pass', year: '4th' },
-  ])
+  useEffect(() => {
+    fetchExamData()
+  }, [selectedYear])
 
-  const filteredSchedules = examSchedules.filter(s => s.year === selectedYear)
-  const filteredHalls = hallAssignments.filter(h => h.year === selectedYear)
-  const yearFilteredMarks = marks.filter(m => m.year === selectedYear)
-  
-  const filteredMarks = yearFilteredMarks.filter(m => {
-    if (marksFilter === 'passed') return m.status === 'Pass'
-    if (marksFilter === 'arrear') return m.status === 'Arrear'
-    return true
-  })
+  const fetchExamData = async () => {
+    try {
+      setLoading(true)
+      
+      // Fetch exam schedules
+      const schedulesData = await examAPI.getSchedules(selectedYear, undefined, 'AI&DS')
+      console.log('Schedules data:', schedulesData)
+      setExamSchedules(Array.isArray(schedulesData.schedules) ? schedulesData.schedules : (Array.isArray(schedulesData) ? schedulesData : []))
+      
+      // Fetch hall assignments
+      const hallData = await examAPI.getHallAssignments(selectedYear)
+      console.log('Hall data:', hallData)
+      setHallAssignments(Array.isArray(hallData.hallAssignments) ? hallData.hallAssignments : (Array.isArray(hallData) ? hallData : []))
+      
+      // Fetch marks
+      const marksData = await examAPI.getMarks(selectedYear, undefined)
+      console.log('Marks data:', marksData)
+      setMarks(Array.isArray(marksData.marks) ? marksData.marks : (Array.isArray(marksData) ? marksData : []))
+    } catch (err) {
+      console.error('Error fetching exam data:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUploadSchedule = async (scheduleId) => {
+    if (!scheduleFile) {
+      alert('Please select a file')
+      return
+    }
+
+    try {
+      setLoading(true)
+      // Upload file to backend with OCR extraction
+      const formData = new FormData()
+      formData.append('file', scheduleFile)
+      formData.append('year', selectedYear)
+      formData.append('department', 'AI&DS')
+
+      const response = await fetch('http://localhost:5007/api/files/upload-exam-schedule', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        alert('Exam schedule uploaded successfully! OCR extraction in progress...')
+        setShowScheduleUpload(false)
+        setScheduleFile(null)
+        // Refresh data after a short delay
+        setTimeout(() => {
+          fetchExamData()
+        }, 1000)
+      } else {
+        alert('Failed to upload schedule: ' + data.message)
+      }
+    } catch (err) {
+      console.error('Error uploading schedule:', err)
+      alert('Failed to upload schedule: ' + (err.message || 'Unknown error'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteSchedules = async () => {
+    if (!window.confirm(`Are you sure you want to delete all exam schedules for ${selectedYear} year? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await fetch(`http://localhost:5007/api/files/delete-exam-schedules/${selectedYear}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ department: 'AI&DS' })
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        alert(`Successfully deleted ${data.deletedCount} exam schedule records`)
+        fetchExamData()
+      } else {
+        alert('Failed to delete schedules: ' + data.message)
+      }
+    } catch (err) {
+      console.error('Error deleting schedules:', err)
+      alert('Failed to delete schedules: ' + (err.message || 'Unknown error'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteHallAssignments = async () => {
+    if (!window.confirm(`Are you sure you want to delete all hall assignments for ${selectedYear} year? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await fetch(`http://localhost:5007/api/files/delete-hall-assignments/${selectedYear}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ department: 'AI&DS' })
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        alert(`Successfully deleted ${data.deletedCount} hall assignment records`)
+        fetchExamData()
+      } else {
+        alert('Failed to delete hall assignments: ' + data.message)
+      }
+    } catch (err) {
+      console.error('Error deleting hall assignments:', err)
+      alert('Failed to delete hall assignments: ' + (err.message || 'Unknown error'))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleLogout = () => {
     onLogout()
     navigate('/login')
   }
 
-  const handleUploadSchedule = () => {
-    alert('Upload exam schedule file')
+  const handleUploadHallAssignments = async () => {
+    if (!hallFile) {
+      alert('Please select a file')
+      return
+    }
+
+    try {
+      setLoading(true)
+      // Upload file to backend with OCR extraction
+      const formData = new FormData()
+      formData.append('file', hallFile)
+      formData.append('year', selectedYear)
+      formData.append('department', 'AI&DS')
+
+      const response = await fetch('http://localhost:5007/api/files/upload-hall-assignments', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        alert('Hall assignments uploaded successfully! OCR extraction in progress...')
+        setShowHallUpload(false)
+        setHallFile(null)
+        // Refresh data after a short delay
+        setTimeout(() => {
+          fetchExamData()
+        }, 1000)
+      } else {
+        alert('Failed to upload hall assignments: ' + data.message)
+      }
+    } catch (err) {
+      console.error('Error uploading hall assignments:', err)
+      alert('Failed to upload hall assignments: ' + (err.message || 'Unknown error'))
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleUploadHallTicket = () => {
-    alert('Upload hall ticket file')
-  }
+  const filteredSchedules = []
+  const filteredHalls = []
+  const yearFilteredMarks = []
+  
+  const filteredMarks = []
 
   return (
     <div className="flex h-screen bg-gray-900">
-      <Sidebar isOpen={sidebarOpen} userRole="faculty" />
+      <Sidebar isOpen={sidebarOpen} userRole={userRole} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <SimplifiedHeader 
           sidebarOpen={sidebarOpen} 
@@ -83,7 +251,7 @@ export default function ExamDetails({ onLogout }) {
             </div>
 
             <div className="flex gap-4 mb-8 border-b border-purple-500">
-              {['schedule', 'halls', 'marks'].map(tab => (
+              {['schedule', 'halls', 'internal', 'marks'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -95,6 +263,7 @@ export default function ExamDetails({ onLogout }) {
                 >
                   {tab === 'schedule' && 'Exam Schedule'}
                   {tab === 'halls' && 'Hall Assignments'}
+                  {tab === 'internal' && 'Internal Marks'}
                   {tab === 'marks' && 'Marks'}
                 </button>
               ))}
@@ -102,89 +271,213 @@ export default function ExamDetails({ onLogout }) {
 
             {activeTab === 'schedule' && (
               <div>
-                <div className="mb-6 flex justify-end">
-                  <button
-                    onClick={handleUploadSchedule}
-                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold flex items-center gap-2 transition"
-                  >
-                    <Upload size={20} />
-                    Upload Schedule
-                  </button>
-                </div>
-                <div className="glass-effect rounded-xl overflow-hidden card-shadow">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gradient-to-r from-purple-600 to-blue-600">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Date</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Day</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Course Name</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Semester</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Timing</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredSchedules.map((schedule, idx) => (
-                          <tr key={schedule.id} className={`border-t border-gray-700 ${idx % 2 === 0 ? 'bg-gray-800' : 'bg-gray-750'} hover:bg-gray-700 transition`}>
-                            <td className="px-4 py-3 text-white font-medium">{schedule.date}</td>
-                            <td className="px-4 py-3 text-gray-300">{schedule.day}</td>
-                            <td className="px-4 py-3 text-gray-300">{schedule.courseName}</td>
-                            <td className="px-4 py-3 text-gray-300">{schedule.semester}</td>
-                            <td className="px-4 py-3 text-gray-300">{schedule.timing}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                {examSchedules.length === 0 && (
+                  <div className="mb-6 flex justify-end">
+                    <button
+                      onClick={() => setShowScheduleUpload(true)}
+                      className="btn-primary"
+                    >
+                      <Upload size={20} className="inline mr-2" />
+                      Upload Schedule File
+                    </button>
                   </div>
-                </div>
+                )}
+
+                {showScheduleUpload && examSchedules.length === 0 && (
+                  <div className="card-professional mb-6">
+                    <h2 className="text-2xl font-bold text-white mb-4">Upload Exam Schedule</h2>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-blue-300 mb-2">Select Schedule File (PDF)</label>
+                        <input
+                          type="file"
+                          onChange={(e) => setScheduleFile(e.target.files[0])}
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          className="input-professional"
+                        />
+                      </div>
+                      <div className="flex gap-4">
+                        <button
+                          onClick={() => {
+                            if (scheduleFile) {
+                              handleUploadSchedule('bulk')
+                            } else {
+                              alert('Please select a file')
+                            }
+                          }}
+                          disabled={loading}
+                          className="btn-success flex-1"
+                        >
+                          {loading ? 'Uploading...' : 'Upload'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowScheduleUpload(false)
+                            setScheduleFile(null)
+                          }}
+                          className="btn-secondary flex-1"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {examSchedules.length > 0 && (
+                  <div>
+                    <div className="mb-4 flex justify-between items-center">
+                      <p className="text-blue-300 font-medium">Showing {examSchedules.reduce((sum, s) => sum + (s.exams?.length || 0), 0)} exam(s)</p>
+                      <button
+                        onClick={handleDeleteSchedules}
+                        disabled={loading}
+                        className="btn-danger btn-small"
+                      >
+                        {loading ? 'Deleting...' : 'Delete Schedule'}
+                      </button>
+                    </div>
+                    <div className="card-professional">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="table-header">
+                            <tr>
+                              <th className="px-4 py-3 text-left">Course</th>
+                              <th className="px-4 py-3 text-left">Date</th>
+                              <th className="px-4 py-3 text-left">Day</th>
+                              <th className="px-4 py-3 text-left">Time</th>
+                              <th className="px-4 py-3 text-left">Duration</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {examSchedules.flatMap((schedule, scheduleIdx) => 
+                              (schedule.exams || []).map((exam, examIdx) => (
+                                <tr key={`${scheduleIdx}-${examIdx}`} className="table-row-hover">
+                                  <td className="px-4 py-3 text-white font-medium">{exam.course || '-'}</td>
+                                  <td className="px-4 py-3 text-slate-300">{exam.date || '-'}</td>
+                                  <td className="px-4 py-3 text-slate-300">{exam.day || '-'}</td>
+                                  <td className="px-4 py-3 text-slate-300">{exam.time || '-'}</td>
+                                  <td className="px-4 py-3 text-slate-300">{exam.duration || '-'}</td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {examSchedules.length === 0 && !showScheduleUpload && (
+                  <div className="glass-effect rounded-xl p-6 card-shadow text-center">
+                    <p className="text-gray-300">No schedule available yet</p>
+                  </div>
+                )}
               </div>
             )}
 
             {activeTab === 'halls' && (
               <div>
-                <div className="mb-6 flex justify-end">
-                  <button
-                    onClick={handleUploadHallTicket}
-                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold flex items-center gap-2 transition"
-                  >
-                    <Upload size={20} />
-                    Upload Hall Ticket
-                  </button>
-                </div>
-                <div className="glass-effect rounded-xl overflow-hidden card-shadow">
+                {hallAssignments.length > 0 && (
+                  <div className="mb-4 flex justify-between items-center">
+                    <p className="text-blue-300 font-medium">Showing {hallAssignments.length} hall assignment(s)</p>
+                    <button
+                      onClick={handleDeleteHallAssignments}
+                      disabled={loading}
+                      className="btn-danger btn-small"
+                    >
+                      {loading ? 'Deleting...' : 'Delete All Assignments'}
+                    </button>
+                  </div>
+                )}
+                {hallAssignments.length === 0 && (
+                  <div className="mb-6 flex justify-end">
+                    <button
+                      onClick={() => setShowHallUpload(true)}
+                      className="btn-primary"
+                    >
+                      <Upload size={20} className="inline mr-2" />
+                      Upload Hall Ticket
+                    </button>
+                  </div>
+                )}
+
+                {showHallUpload && (
+                  <div className="card-professional mb-6">
+                    <h2 className="text-2xl font-bold text-white mb-4">Upload Hall Assignments</h2>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-blue-300 mb-2">Select Hall Assignment File (PDF/Excel)</label>
+                        <input
+                          type="file"
+                          onChange={(e) => setHallFile(e.target.files[0])}
+                          accept=".pdf,.xls,.xlsx,.doc,.docx"
+                          className="input-professional"
+                        />
+                      </div>
+                      <div className="flex gap-4">
+                        <button
+                          onClick={() => {
+                            if (hallFile) {
+                              handleUploadHallAssignments()
+                            } else {
+                              alert('Please select a file')
+                            }
+                          }}
+                          disabled={loading}
+                          className="btn-success flex-1"
+                        >
+                          {loading ? 'Uploading...' : 'Upload'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowHallUpload(false)
+                            setHallFile(null)
+                          }}
+                          className="btn-secondary flex-1"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="card-professional">
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gradient-to-r from-purple-600 to-blue-600">
+                      <thead className="table-header">
                         <tr>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Roll No</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Name</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Year</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Block</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Hall No</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Seat No</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Exam Name</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Exam Date</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Duration</th>
+                          <th className="px-4 py-3 text-left">Roll No</th>
+                          <th className="px-4 py-3 text-left">Name</th>
+                          <th className="px-4 py-3 text-left">Year</th>
+                          <th className="px-4 py-3 text-left">Block</th>
+                          <th className="px-4 py-3 text-left">Hall No</th>
+                          <th className="px-4 py-3 text-left">Seat No</th>
+                          <th className="px-4 py-3 text-left">Exam Name</th>
+                          <th className="px-4 py-3 text-left">Exam Date</th>
+                          <th className="px-4 py-3 text-left">Duration</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredHalls.map((hall, idx) => (
-                          <tr key={hall.id} className={`border-t border-gray-700 ${idx % 2 === 0 ? 'bg-gray-800' : 'bg-gray-750'} hover:bg-gray-700 transition`}>
-                            <td className="px-4 py-3 text-white font-medium">{hall.rollNo}</td>
-                            <td className="px-4 py-3 text-white font-medium">{hall.name}</td>
-                            <td className="px-4 py-3">
-                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-900 text-blue-200">
-                                {hall.year}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-gray-300">{hall.block}</td>
-                            <td className="px-4 py-3 text-gray-300">{hall.hallNo}</td>
-                            <td className="px-4 py-3 text-gray-300">{hall.seatNo}</td>
-                            <td className="px-4 py-3 text-gray-300">{hall.examName}</td>
-                            <td className="px-4 py-3 text-gray-300">{hall.examDate}</td>
-                            <td className="px-4 py-3 text-gray-300">{hall.duration}</td>
+                        {hallAssignments.length === 0 ? (
+                          <tr className="table-row-hover">
+                            <td colSpan="9" className="px-4 py-3 text-center text-slate-400">No hall assignments uploaded yet</td>
                           </tr>
-                        ))}
+                        ) : (
+                          hallAssignments.map((hall, idx) => (
+                            <tr key={hall._id || idx} className="table-row-hover">
+                              <td className="px-4 py-3 text-white">{hall.rollNo || '-'}</td>
+                              <td className="px-4 py-3 text-white">{hall.name || '-'}</td>
+                              <td className="px-4 py-3 text-slate-300">{hall.year || '-'}</td>
+                              <td className="px-4 py-3 text-slate-300">{hall.block || '-'}</td>
+                              <td className="px-4 py-3 text-slate-300">{hall.hallNo || '-'}</td>
+                              <td className="px-4 py-3 text-slate-300">{hall.seatNo || '-'}</td>
+                              <td className="px-4 py-3 text-slate-300">{hall.examName || '-'}</td>
+                              <td className="px-4 py-3 text-slate-300">{hall.examDate ? new Date(hall.examDate).toLocaleDateString() : '-'}</td>
+                              <td className="px-4 py-3 text-slate-300">{hall.duration || '-'}</td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -194,158 +487,311 @@ export default function ExamDetails({ onLogout }) {
 
             {activeTab === 'marks' && (
               <div>
-                <div className="flex gap-3 mb-8 justify-between items-center">
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setMarksFilter('all')}
-                      className={`px-4 py-2 rounded-lg font-semibold transition ${
-                        marksFilter === 'all'
-                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
+                <div className="mb-6 flex gap-4 items-center">
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-300 font-semibold">Semester:</label>
+                    <select
+                      value={selectedMarksSemester}
+                      onChange={(e) => setSelectedMarksSemester(e.target.value)}
+                      className="px-4 py-2 bg-slate-800 border border-purple-500 rounded-lg text-white focus:outline-none focus:border-purple-400 transition"
                     >
-                      All Students
-                    </button>
-                    <button
-                      onClick={() => setMarksFilter('passed')}
-                      className={`px-4 py-2 rounded-lg font-semibold transition ${
-                        marksFilter === 'passed'
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      Only Passed Students
-                    </button>
-                    <button
-                      onClick={() => setMarksFilter('arrear')}
-                      className={`px-4 py-2 rounded-lg font-semibold transition ${
-                        marksFilter === 'arrear'
-                          ? 'bg-red-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      Only Arrear Students
-                    </button>
-                  </div>
-                  <button className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition">
-                    Download Marks
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-                  <div className="glass-effect rounded-xl p-6 card-shadow">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-400 text-sm mb-2">All Students</p>
-                        <p className="text-3xl font-bold text-white">{yearFilteredMarks.length}</p>
-                      </div>
-                      <div className="text-4xl text-purple-400">👥</div>
-                    </div>
-                  </div>
-
-                  <div className="glass-effect rounded-xl p-6 card-shadow">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-400 text-sm mb-2">Passed Students</p>
-                        <p className="text-3xl font-bold text-green-400">{yearFilteredMarks.filter(m => m.status === 'Pass').length}</p>
-                      </div>
-                      <div className="text-4xl text-green-400">✓</div>
-                    </div>
-                  </div>
-
-                  <div className="glass-effect rounded-xl p-6 card-shadow">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-400 text-sm mb-2">Arrear Students</p>
-                        <p className="text-3xl font-bold text-red-400">{yearFilteredMarks.filter(m => m.status === 'Arrear').length}</p>
-                      </div>
-                      <div className="text-4xl text-red-400">⚠</div>
-                    </div>
-                  </div>
-
-                  <div className="glass-effect rounded-xl p-6 card-shadow">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-400 text-sm mb-2">Pass Percentage</p>
-                        <p className="text-3xl font-bold text-green-400">{yearFilteredMarks.length > 0 ? Math.round((yearFilteredMarks.filter(m => m.status === 'Pass').length / yearFilteredMarks.length) * 100) : 0}%</p>
-                      </div>
-                      <div className="text-4xl text-green-400">📊</div>
-                    </div>
-                  </div>
-
-                  <div className="glass-effect rounded-xl p-6 card-shadow">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-400 text-sm mb-2">Fail Percentage</p>
-                        <p className="text-3xl font-bold text-red-400">{yearFilteredMarks.length > 0 ? Math.round((yearFilteredMarks.filter(m => m.status === 'Arrear').length / yearFilteredMarks.length) * 100) : 0}%</p>
-                      </div>
-                      <div className="text-4xl text-red-400">📊</div>
-                    </div>
+                      {semesters.map((semester) => (
+                        <option key={semester} value={semester}>
+                          {semester}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-
-                <div className="flex gap-4 mb-6">
-                  <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition">
-                    Download Passed Students ZIP
-                  </button>
-                  <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition">
-                    Download Arrear Students ZIP
-                  </button>
-                </div>
-
-                <div className="glass-effect rounded-xl overflow-hidden card-shadow">
+                <div className="card-professional">
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gradient-to-r from-purple-600 to-blue-600">
+                      <thead className="table-header">
                         <tr>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Roll No</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Name</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Course</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Internal 1</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Internal 2</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Total</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Grade</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Status</th>
-                          <th className="px-4 py-3 text-left text-white font-semibold">Mark Sheet</th>
+                          <th className="px-4 py-3 text-left">Roll No</th>
+                          <th className="px-4 py-3 text-left">Name</th>
+                          <th className="px-4 py-3 text-center">Mark Sheet</th>
+                          <th className="px-4 py-3 text-center">SGPA</th>
+                          <th className="px-4 py-3 text-center">CGPA</th>
+                          <th className="px-4 py-3 text-center">Credit Registered</th>
+                          <th className="px-4 py-3 text-left">Credit Completed</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredMarks.map((mark, idx) => (
-                          <tr key={mark.id} className={`border-t border-gray-700 ${idx % 2 === 0 ? 'bg-gray-800' : 'bg-gray-750'} hover:bg-gray-700 transition`}>
-                            <td className="px-4 py-3 text-white font-medium">{mark.rollNo}</td>
-                            <td className="px-4 py-3 text-white">{mark.name}</td>
-                            <td className="px-4 py-3 text-gray-300">{mark.course}</td>
-                            <td className="px-4 py-3 text-gray-300">{mark.internal1}</td>
-                            <td className="px-4 py-3 text-gray-300">{mark.internal2}</td>
-                            <td className="px-4 py-3 text-white font-semibold">{mark.total}</td>
-                            <td className="px-4 py-3">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                mark.grade === 'A+' ? 'bg-green-900 text-green-200' :
-                                mark.grade === 'A' ? 'bg-green-800 text-green-200' :
-                                mark.grade === 'B' ? 'bg-blue-900 text-blue-200' :
-                                'bg-yellow-900 text-yellow-200'
-                              }`}>
-                                {mark.grade}
-                              </span>
+                        {marks.filter(m => m.semester === selectedMarksSemester).map((markData) => (
+                          <tr key={markData._id} className="table-row-hover">
+                            <td className="px-4 py-3 text-white font-medium">{markData.rollNo || '-'}</td>
+                            <td className="px-4 py-3 text-white font-medium">{markData.name || '-'}</td>
+                            
+                            {/* Mark Sheet Column */}
+                            <td className="px-4 py-3 text-center">
+                              {markData?.semesterFile ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <a
+                                    href={`http://localhost:5007${markData.semesterFile}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-300 transition"
+                                    title="View Mark Sheet"
+                                  >
+                                    <Eye size={18} />
+                                  </a>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setUploadingCourse(markData.rollNo)
+                                    setUploadingType('semester')
+                                  }}
+                                  className="btn-primary btn-small mx-auto"
+                                >
+                                  <Upload size={14} className="inline mr-1" />
+                                  Upload
+                                </button>
+                              )}
                             </td>
-                            <td className="px-4 py-3">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                mark.status === 'Pass' ? 'bg-green-900 text-green-200' : 'bg-red-900 text-red-200'
-                              }`}>
-                                {mark.status}
-                              </span>
+
+                            {/* SGPA Column */}
+                            <td className="px-4 py-3 text-center text-slate-300">
+                              {markData?.sgpa || '-'}
                             </td>
-                            <td className="px-4 py-3">
-                              <button className="text-blue-400 hover:text-blue-300 font-medium transition">
-                                View
-                              </button>
+
+                            {/* CGPA Column */}
+                            <td className="px-4 py-3 text-center text-slate-300">
+                              {markData?.cgpa || '-'}
                             </td>
+
+                            {/* Credit Registered Column */}
+                            <td className="px-4 py-3 text-center text-slate-300">
+                              {markData?.creditRegistered || '-'}
+                            </td>
+
+                            {/* Credit Completed Column */}
+                            <td className="px-4 py-3 text-slate-300 text-sm">{markData?.creditCompleted || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
+
+                {/* Upload Modal */}
+                {uploadingCourse && uploadingType && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="card-professional max-w-md w-full mx-4">
+                      <h2 className="text-2xl font-bold text-white mb-4">
+                        Upload Semester Mark Sheet
+                      </h2>
+                      <p className="text-blue-300 mb-4">Course: <span className="font-semibold text-white">{uploadingCourse}</span></p>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-blue-300 mb-2">Select Mark Sheet File (Image/PDF)</label>
+                          <input
+                            type="file"
+                            onChange={(e) => setUploadFile(e.target.files[0])}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="input-professional"
+                          />
+                        </div>
+                        <div className="flex gap-4">
+                          <button
+                            onClick={() => handleUploadMarks(uploadingCourse, uploadingType)}
+                            disabled={loading || !uploadFile}
+                            className="btn-success flex-1"
+                          >
+                            {loading ? 'Uploading...' : 'Upload'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setUploadingCourse(null)
+                              setUploadingType(null)
+                              setUploadFile(null)
+                            }}
+                            className="btn-secondary flex-1"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Internal Marks Tab */}
+            {activeTab === 'internal' && (
+              <div>
+                <div className="mb-6 flex gap-4 items-center">
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-300 font-semibold">Semester:</label>
+                    <select
+                      value={selectedSemester}
+                      onChange={(e) => setSelectedSemester(e.target.value)}
+                      className="px-4 py-2 bg-slate-800 border border-purple-500 rounded-lg text-white focus:outline-none focus:border-purple-400 transition"
+                    >
+                      {semesters.map((semester) => (
+                        <option key={semester} value={semester}>
+                          {semester}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-300 font-semibold">Course:</label>
+                    <select
+                      value={selectedCourse}
+                      onChange={(e) => setSelectedCourse(e.target.value)}
+                      className="px-4 py-2 bg-slate-800 border border-purple-500 rounded-lg text-white focus:outline-none focus:border-purple-400 transition"
+                    >
+                      {courses.map((course) => (
+                        <option key={course} value={course}>
+                          {course}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="card-professional">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="table-header">
+                        <tr>
+                          <th className="px-4 py-3 text-left">Roll No</th>
+                          <th className="px-4 py-3 text-left">Name</th>
+                          <th className="px-4 py-3 text-center">Internal 1</th>
+                          <th className="px-4 py-3 text-center">Internal 2</th>
+                          <th className="px-4 py-3 text-center">Status</th>
+                          <th className="px-4 py-3 text-left">Remarks</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {marks.filter(m => m.semester === selectedSemester && m.course === selectedCourse).map((markData) => (
+                          <tr key={markData._id} className="table-row-hover">
+                            <td className="px-4 py-3 text-white font-medium">{markData.rollNo || '-'}</td>
+                            <td className="px-4 py-3 text-white font-medium">{markData.name || '-'}</td>
+                            
+                            {/* Internal 1 Column */}
+                            <td className="px-4 py-3 text-center">
+                              {markData?.internal1File ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <span className="text-slate-300">
+                                    {markData?.internal1FileExtracted?.internal1 || markData?.internal1 || '-'}
+                                  </span>
+                                  <a
+                                    href={`http://localhost:5007${markData.internal1File}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-300 transition"
+                                    title="View Internal 1"
+                                  >
+                                    <Eye size={18} />
+                                  </a>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setUploadingCourse(markData.rollNo)
+                                    setUploadingType('internal1')
+                                  }}
+                                  className="btn-primary btn-small mx-auto"
+                                >
+                                  <Upload size={14} className="inline mr-1" />
+                                  Upload
+                                </button>
+                              )}
+                            </td>
+
+                            {/* Internal 2 Column */}
+                            <td className="px-4 py-3 text-center">
+                              {markData?.internal2File ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <span className="text-slate-300">
+                                    {markData?.internal2FileExtracted?.internal2 || markData?.internal2 || '-'}
+                                  </span>
+                                  <a
+                                    href={`http://localhost:5007${markData.internal2File}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-300 transition"
+                                    title="View Internal 2"
+                                  >
+                                    <Eye size={18} />
+                                  </a>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setUploadingCourse(markData.rollNo)
+                                    setUploadingType('internal2')
+                                  }}
+                                  className="btn-primary btn-small mx-auto"
+                                >
+                                  <Upload size={14} className="inline mr-1" />
+                                  Upload
+                                </button>
+                              )}
+                            </td>
+
+                            {/* Status Column */}
+                            <td className="px-4 py-3 text-center">
+                              <span className={`${
+                                markData?.status === 'Pass' ? 'badge-pass' : 'badge-fail'
+                              }`}>
+                                {markData?.status || '-'}
+                              </span>
+                            </td>
+
+                            {/* Remarks Column */}
+                            <td className="px-4 py-3 text-slate-300 text-sm">{markData?.remarks || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Upload Modal */}
+                {uploadingCourse && uploadingType && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="card-professional max-w-md w-full mx-4">
+                      <h2 className="text-2xl font-bold text-white mb-4">
+                        Upload {uploadingType === 'internal1' ? 'Internal 1' : 'Internal 2'} Marks
+                      </h2>
+                      <p className="text-blue-300 mb-4">Course: <span className="font-semibold text-white">{uploadingCourse}</span></p>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-blue-300 mb-2">Select Marks File (Image/PDF)</label>
+                          <input
+                            type="file"
+                            onChange={(e) => setUploadFile(e.target.files[0])}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="input-professional"
+                          />
+                        </div>
+                        <div className="flex gap-4">
+                          <button
+                            onClick={() => handleUploadMarks(uploadingCourse, uploadingType)}
+                            disabled={loading || !uploadFile}
+                            className="btn-success flex-1"
+                          >
+                            {loading ? 'Uploading...' : 'Upload'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setUploadingCourse(null)
+                              setUploadingType(null)
+                              setUploadFile(null)
+                            }}
+                            className="btn-secondary flex-1"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

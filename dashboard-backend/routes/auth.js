@@ -3,8 +3,6 @@ import jwt from 'jsonwebtoken'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { validatePassword } from '../utils/passwordValidator.js'
-import { validateEmail } from '../utils/emailValidator.js'
 
 const router = express.Router()
 
@@ -16,47 +14,71 @@ const __dirname = path.dirname(__filename)
 const credentialsPath = path.join(__dirname, '../credentials.json')
 const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'))
 
+console.log('Credentials loaded:')
+console.log('Students:', credentials.students.map(s => s.email))
+console.log('Faculty:', credentials.faculty.map(f => f.email))
+console.log('HOD:', credentials.hod.map(h => h.email))
+console.log('AD:', credentials.ad.map(a => a.email))
+
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
+
+    console.log('=== LOGIN ATTEMPT ===')
+    console.log('Email received:', email)
+    console.log('Password received:', password)
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' })
     }
 
-    // Validate email format
-    const emailValidation = validateEmail(email)
-    if (!emailValidation.isValid) {
-      return res.status(400).json({ 
-        message: 'Invalid email format',
-        error: emailValidation.error
-      })
-    }
-
-    // Validate password format
-    const passwordValidation = validatePassword(password)
-    if (!passwordValidation.isValid) {
-      return res.status(400).json({ 
-        message: 'Invalid password format',
-        errors: passwordValidation.errors
-      })
-    }
-
-    // Check credentials against file
+    // Check credentials against file - NO VALIDATION, JUST MATCH
     let user = null
     let role = null
 
-    if (email.startsWith('student')) {
-      user = credentials.students.find(s => s.email === email && s.password === password)
+    // Try to find user in any role
+    // Check students
+    user = credentials.students.find(s => s.email.toLowerCase() === email.toLowerCase() && s.password === password)
+    if (user) {
       role = 'student'
-    } else if (email.startsWith('faculty')) {
-      user = credentials.faculty.find(f => f.email === email && f.password === password)
-      role = 'faculty'
+      console.log('Student found:', user.name)
+    }
+
+    // Check faculty
+    if (!user) {
+      user = credentials.faculty.find(f => f.email.toLowerCase() === email.toLowerCase() && f.password === password)
+      if (user) {
+        role = 'faculty'
+        console.log('Faculty found:', user.name)
+      }
+    }
+
+    // Check HOD
+    if (!user) {
+      user = credentials.hod.find(h => h.email.toLowerCase() === email.toLowerCase() && h.password === password)
+      if (user) {
+        role = 'hod'
+        console.log('HOD found:', user.name)
+      }
+    }
+
+    // Check AD
+    if (!user) {
+      user = credentials.ad.find(a => a.email.toLowerCase() === email.toLowerCase() && a.password === password)
+      if (user) {
+        role = 'ad'
+        console.log('AD found:', user.name)
+      }
     }
 
     if (!user) {
+      console.log('User not found - login failed')
+      console.log('Available students:', credentials.students.map(s => s.email))
+      console.log('Available faculty:', credentials.faculty.map(f => f.email))
       return res.status(401).json({ message: 'Invalid email or password' })
     }
+
+    console.log('User found, generating token')
 
     // Generate token
     const token = jwt.sign(
@@ -70,6 +92,8 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     )
 
+    console.log('Login successful for:', email, 'Role:', role)
+
     res.json({
       token,
       user: {
@@ -77,6 +101,14 @@ router.post('/login', async (req, res) => {
         role: role,
         name: user.name,
         ...(role === 'faculty' && {
+          designation: user.designation,
+          department: user.department
+        }),
+        ...(role === 'hod' && {
+          designation: user.designation,
+          department: user.department
+        }),
+        ...(role === 'ad' && {
           designation: user.designation,
           department: user.department
         }),

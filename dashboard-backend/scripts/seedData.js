@@ -189,14 +189,56 @@ const seedData = async () => {
         content: 'The time table for AI&DS department has been updated for the current semester. Classes will start from 9:00 AM.',
         author: 'Department Head',
         priority: 'high',
-        type: 'department'
+        type: 'general',
+        department: 'AI&DS'
       },
       {
         title: 'Department Seminar - Machine Learning Applications',
         content: 'A seminar on "Real-world ML Applications" will be conducted on February 5th at 2:00 PM in the AI Lab.',
         author: 'Faculty',
         priority: 'medium',
-        type: 'department'
+        type: 'general',
+        department: 'AI&DS'
+      },
+      {
+        title: 'Semester Exam Schedule Released',
+        content: 'The semester exam schedule for the current academic year has been released. Please check the exam details section for more information.',
+        author: 'Dr. Smith',
+        priority: 'high',
+        type: 'general',
+        department: 'AI&DS'
+      },
+      {
+        title: 'Certificate Upload Deadline Extended',
+        content: 'The deadline for uploading certificates has been extended to the end of this month. Students are requested to upload their certificates as soon as possible.',
+        author: 'Dr. Johnson',
+        priority: 'medium',
+        type: 'general',
+        department: 'AI&DS'
+      },
+      {
+        title: 'Internship Opportunities Available',
+        content: 'Several internship opportunities are available for 3rd and 4th year students. Interested students should submit their applications through the portal.',
+        author: 'Prof. Williams',
+        priority: 'medium',
+        type: 'general',
+        department: 'AI&DS'
+      },
+      {
+        title: 'Important: Hall Assignment Released',
+        content: 'Hall assignments for the upcoming exams have been released. Please check your exam details to find your assigned hall.',
+        author: 'Dr. Brown',
+        priority: 'high',
+        type: 'general',
+        department: 'AI&DS'
+      },
+      {
+        title: 'Marks Update Notification',
+        content: 'Internal marks for Semester 4 have been updated. Students can view their marks in the exam details section.',
+        author: 'Dr. Davis',
+        priority: 'low',
+        type: 'general',
+        department: 'AI&DS'
       },
       {
         title: 'NAAC Accreditation A+ Grade',

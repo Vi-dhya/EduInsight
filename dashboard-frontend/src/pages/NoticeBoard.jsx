@@ -5,10 +5,11 @@ import SimplifiedHeader from '../components/SimplifiedHeader'
 import { Trash2, Plus, Calendar, AlertCircle } from 'lucide-react'
 import { noticesAPI } from '../services/api'
 
-export default function NoticeBoard({ onLogout }) {
+export default function NoticeBoard({ onLogout, userRole = 'faculty' }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [priorityFilter, setPriorityFilter] = useState('all')
+  const [selectedYear, setSelectedYear] = useState('2nd')
   const [notices, setNotices] = useState([])
   const [loading, setLoading] = useState(true)
   const [successMessage, setSuccessMessage] = useState('')
@@ -102,7 +103,7 @@ export default function NoticeBoard({ onLogout }) {
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-900">
-        <Sidebar isOpen={sidebarOpen} userRole="faculty" />
+        <Sidebar isOpen={sidebarOpen} userRole={userRole} />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-white text-xl">Loading notices...</p>
         </div>
@@ -112,7 +113,7 @@ export default function NoticeBoard({ onLogout }) {
 
   return (
     <div className="flex h-screen bg-gray-900">
-      <Sidebar isOpen={sidebarOpen} userRole="faculty" />
+      <Sidebar isOpen={sidebarOpen} userRole={userRole} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <SimplifiedHeader 
@@ -125,13 +126,27 @@ export default function NoticeBoard({ onLogout }) {
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-4xl font-bold text-white">Notice Board</h1>
-              <button
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold flex items-center gap-2 transition"
-              >
-                <Plus size={20} />
-                Add Notice
-              </button>
+              <div className="flex items-center gap-4">
+                <div>
+                  <label className="text-gray-300 font-semibold mr-2">Year:</label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 border border-purple-400 rounded-lg text-white focus:outline-none focus:border-purple-300 transition font-semibold"
+                  >
+                    <option value="2nd">2nd Year</option>
+                    <option value="3rd">3rd Year</option>
+                    <option value="4th">4th Year</option>
+                  </select>
+                </div>
+                <button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold flex items-center gap-2 transition"
+                >
+                  <Plus size={20} />
+                  Add Notice
+                </button>
+              </div>
             </div>
 
             {successMessage && (
